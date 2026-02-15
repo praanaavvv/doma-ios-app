@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>DYNAMIC_RELAY_HOST</key>
+	<string>$(DYNAMIC_RELAY_HOST)</string>
+	<key>WCRelayHost</key>
+	<string>$(WC_RELAY_HOST)</string>
+	<key>WCRelayURL</key>
+	<string>wss://$(WC_RELAY_HOST)/?projectId=$(WC_PROJECT_ID)</string>
+	<key>WCProjectId</key>
+	<string>$(WC_PROJECT_ID)</string>
+	<key>DYNAMIC_BASE_URL</key>
+	<string>$(DYNAMIC_BASE_URL)</string>
+	<key>DYNAMIC_ENVIRONMENT_ID</key>
+	<string>$(DYNAMIC_ENVIRONMENT_ID)</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>domasecure</string>
+			</array>
+			<key>CFBundleURLName</key>
+			<string>com.doma.DomaSecure</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+		</dict>
+	</array>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>metamask</string>
+		<string>rainbow</string>
+		<string>trust</string>
+		<string>cbwallet</string>
+		<string>safe</string>
+		<string>uniswap</string>
+	</array>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
+</dict>
+</plist>

@@ -6,14 +6,124 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		FE03CC722EFD08B700ABF095 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE03CC712EFD08AA00ABF095 /* APIClient.swift */; };
+		FE03CC742EFD092F00ABF095 /* DTOs.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE03CC732EFD092A00ABF095 /* DTOs.swift */; };
+		FE03CC762EFD095500ABF095 /* DomaAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE03CC752EFD094500ABF095 /* DomaAPI.swift */; };
+		FE2A3A022F39AA0400C3BEC9 /* XmtpService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE2A3A012F39A9EE00C3BEC9 /* XmtpService.swift */; };
+
+		FE4A7C802F41C72700BC049D /* XMTPiOS in Frameworks */ = {isa = PBXBuildFile; productRef = FE4A7C7F2F41C72700BC049D /* XMTPiOS */; };
+		FE55D23B2F39FCA60094834A /* AppErrors.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE55D23A2F39FCA60094834A /* AppErrors.swift */; };
+		FE662D0C2EFEAF44006A68F1 /* DomainCardRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE662D0B2EFEAF34006A68F1 /* DomainCardRow.swift */; };
+		FE662D0E2EFEAF64006A68F1 /* DomainSwitchSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE662D0D2EFEAF55006A68F1 /* DomainSwitchSheet.swift */; };
+		FE662D182F054635006A68F1 /* Starscream in Frameworks */ = {isa = PBXBuildFile; productRef = FE662D172F054635006A68F1 /* Starscream */; };
+		FE662D1B2F0547EA006A68F1 /* ReownAppKit in Frameworks */ = {isa = PBXBuildFile; productRef = FE662D1A2F0547EA006A68F1 /* ReownAppKit */; };
+		FE662D1D2F0547EA006A68F1 /* ReownAppKitUI in Frameworks */ = {isa = PBXBuildFile; productRef = FE662D1C2F0547EA006A68F1 /* ReownAppKitUI */; };
+		FE662D1F2F0547EA006A68F1 /* ReownRouter in Frameworks */ = {isa = PBXBuildFile; productRef = FE662D1E2F0547EA006A68F1 /* ReownRouter */; };
+		FE662D212F0547EA006A68F1 /* ReownWalletKit in Frameworks */ = {isa = PBXBuildFile; productRef = FE662D202F0547EA006A68F1 /* ReownWalletKit */; };
+		FE662D232F0547EA006A68F1 /* WalletConnect in Frameworks */ = {isa = PBXBuildFile; productRef = FE662D222F0547EA006A68F1 /* WalletConnect */; };
+		FE662D252F0547EA006A68F1 /* WalletConnectNetworking in Frameworks */ = {isa = PBXBuildFile; productRef = FE662D242F0547EA006A68F1 /* WalletConnectNetworking */; };
+		FE662D272F0547EA006A68F1 /* WalletConnectNotify in Frameworks */ = {isa = PBXBuildFile; productRef = FE662D262F0547EA006A68F1 /* WalletConnectNotify */; };
+		FE662D2B2F054819006A68F1 /* WalletConnectIdentity in Frameworks */ = {isa = PBXBuildFile; productRef = FE662D2A2F054819006A68F1 /* WalletConnectIdentity */; };
+		FE662D382F079327006A68F1 /* Env.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE662D372F07931E006A68F1 /* Env.swift */; };
+		FE662D3A2F079377006A68F1 /* DynamicManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE662D392F079370006A68F1 /* DynamicManager.swift */; };
+		FE662D3C2F07A04C006A68F1 /* DynamicAuthWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE662D3B2F07A042006A68F1 /* DynamicAuthWebView.swift */; };
+		FE662D402F07A5D4006A68F1 /* SafariView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE662D3F2F07A5CD006A68F1 /* SafariView.swift */; };
+		FE662D422F07C63B006A68F1 /* DynamicAuthSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE662D412F07C630006A68F1 /* DynamicAuthSession.swift */; };
+		FE662D442F07CEFF006A68F1 /* AppBootStrap.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE662D432F07CEF6006A68F1 /* AppBootStrap.swift */; };
+		FE662D462F07D088006A68F1 /* WCSocketFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE662D452F07D07B006A68F1 /* WCSocketFactory.swift */; };
+		FE662D482F07D100006A68F1 /* DefaultCryptoProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE662D472F07D0F7006A68F1 /* DefaultCryptoProvider.swift */; };
+		FE662D4A2F07D266006A68F1 /* AppViewModal.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE662D492F07D261006A68F1 /* AppViewModal.swift */; };
+		FE662D632F07D964006A68F1 /* Web3 in Frameworks */ = {isa = PBXBuildFile; productRef = FE662D622F07D964006A68F1 /* Web3 */; };
+		FE662D652F07D964006A68F1 /* Web3ContractABI in Frameworks */ = {isa = PBXBuildFile; productRef = FE662D642F07D964006A68F1 /* Web3ContractABI */; };
+		FE662D672F07D964006A68F1 /* Web3PromiseKit in Frameworks */ = {isa = PBXBuildFile; productRef = FE662D662F07D964006A68F1 /* Web3PromiseKit */; };
+		FE662D692F0BDE64006A68F1 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE662D682F0BDE4C006A68F1 /* ContentView.swift */; };
+		FE662D6B2F0BE2F5006A68F1 /* ComponentLibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE662D6A2F0BE2E8006A68F1 /* ComponentLibraryView.swift */; };
+		FEC6A5BF2EF7B462001C4DFB /* DomainPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEC6A5BB2EF7B462001C4DFB /* DomainPickerView.swift */; };
+		FEC6A5C02EF7B462001C4DFB /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEC6A5BC2EF7B462001C4DFB /* MainTabView.swift */; };
+		FEC6A5C12EF7B462001C4DFB /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEC6A5BD2EF7B462001C4DFB /* OnboardingView.swift */; };
+		FEC6A5C32EF7B480001C4DFB /* ChatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEC6A5C22EF7B472001C4DFB /* ChatsView.swift */; };
+		FEC6A5C62EF7B4FB001C4DFB /* ChatDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEC6A5C52EF7B4F0001C4DFB /* ChatDetailView.swift */; };
+		FEC6A5CB2EF7B885001C4DFB /* DomainsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEC6A5CA2EF7B87B001C4DFB /* DomainsView.swift */; };
+		FEC6A5CD2EF7B8BC001C4DFB /* DomainDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEC6A5CC2EF7B8A6001C4DFB /* DomainDetailView.swift */; };
+		FEC6A5CF2EF7B8EC001C4DFB /* ConfigureDNSView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEC6A5CE2EF7B8DB001C4DFB /* ConfigureDNSView.swift */; };
+		FEC6A5D12EF7B918001C4DFB /* VerifyAndSignView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEC6A5D02EF7B901001C4DFB /* VerifyAndSignView.swift */; };
+		FEC6A5D32EF7BBE8001C4DFB /* AddDomainSearchSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEC6A5D22EF7BBCE001C4DFB /* AddDomainSearchSheet.swift */; };
+		FEC6A5D62EF7BD53001C4DFB /* AnalyticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEC6A5D52EF7BD49001C4DFB /* AnalyticsView.swift */; };
+		FEC6A5D82EF7BD7A001C4DFB /* AnalyticsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEC6A5D72EF7BD6C001C4DFB /* AnalyticsCard.swift */; };
+		FEC6A5DA2EF7BDC6001C4DFB /* AnalyticsDomainRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEC6A5D92EF7BDB4001C4DFB /* AnalyticsDomainRow.swift */; };
+		FEC6A5DC2EF7BDF4001C4DFB /* TimeRangePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEC6A5DB2EF7BDDF001C4DFB /* TimeRangePicker.swift */; };
+		FEC6A5DF2EF7C128001C4DFB /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEC6A5DE2EF7C11F001C4DFB /* SettingsView.swift */; };
+		FEC6A5F02EFA7C43001C4DFB /* SearchSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEC6A5EF2EFA7C34001C4DFB /* SearchSheetView.swift */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
+		FE03CC712EFD08AA00ABF095 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
+		FE03CC732EFD092A00ABF095 /* DTOs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DTOs.swift; sourceTree = "<group>"; };
+		FE03CC752EFD094500ABF095 /* DomaAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DomaAPI.swift; sourceTree = "<group>"; };
+		FE2A3A012F39A9EE00C3BEC9 /* XmtpService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XmtpService.swift; sourceTree = "<group>"; };
+		FE55D23A2F39FCA60094834A /* AppErrors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppErrors.swift; sourceTree = "<group>"; };
+		FE662D0B2EFEAF34006A68F1 /* DomainCardRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DomainCardRow.swift; sourceTree = "<group>"; };
+		FE662D0D2EFEAF55006A68F1 /* DomainSwitchSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DomainSwitchSheet.swift; sourceTree = "<group>"; };
+		FE662D352F078C1F006A68F1 /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
+		FE662D372F07931E006A68F1 /* Env.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Env.swift; sourceTree = "<group>"; };
+		FE662D392F079370006A68F1 /* DynamicManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DynamicManager.swift; sourceTree = "<group>"; };
+		FE662D3B2F07A042006A68F1 /* DynamicAuthWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DynamicAuthWebView.swift; sourceTree = "<group>"; };
+		FE662D3F2F07A5CD006A68F1 /* SafariView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariView.swift; sourceTree = "<group>"; };
+		FE662D412F07C630006A68F1 /* DynamicAuthSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DynamicAuthSession.swift; sourceTree = "<group>"; };
+		FE662D432F07CEF6006A68F1 /* AppBootStrap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppBootStrap.swift; sourceTree = "<group>"; };
+		FE662D452F07D07B006A68F1 /* WCSocketFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WCSocketFactory.swift; sourceTree = "<group>"; };
+		FE662D472F07D0F7006A68F1 /* DefaultCryptoProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultCryptoProvider.swift; sourceTree = "<group>"; };
+		FE662D492F07D261006A68F1 /* AppViewModal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppViewModal.swift; sourceTree = "<group>"; };
+		FE662D682F0BDE4C006A68F1 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		FE662D6A2F0BE2E8006A68F1 /* ComponentLibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComponentLibraryView.swift; sourceTree = "<group>"; };
 		FEC6A5742EF6FB00001C4DFB /* DomaSecure.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DomaSecure.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		FEC6A5BB2EF7B462001C4DFB /* DomainPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DomainPickerView.swift; sourceTree = "<group>"; };
+		FEC6A5BC2EF7B462001C4DFB /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
+		FEC6A5BD2EF7B462001C4DFB /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
+		FEC6A5C22EF7B472001C4DFB /* ChatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatsView.swift; sourceTree = "<group>"; };
+		FEC6A5C52EF7B4F0001C4DFB /* ChatDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatDetailView.swift; sourceTree = "<group>"; };
+		FEC6A5CA2EF7B87B001C4DFB /* DomainsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DomainsView.swift; sourceTree = "<group>"; };
+		FEC6A5CC2EF7B8A6001C4DFB /* DomainDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DomainDetailView.swift; sourceTree = "<group>"; };
+		FEC6A5CE2EF7B8DB001C4DFB /* ConfigureDNSView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigureDNSView.swift; sourceTree = "<group>"; };
+		FEC6A5D02EF7B901001C4DFB /* VerifyAndSignView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerifyAndSignView.swift; sourceTree = "<group>"; };
+		FEC6A5D22EF7BBCE001C4DFB /* AddDomainSearchSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddDomainSearchSheet.swift; sourceTree = "<group>"; };
+		FEC6A5D52EF7BD49001C4DFB /* AnalyticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsView.swift; sourceTree = "<group>"; };
+		FEC6A5D72EF7BD6C001C4DFB /* AnalyticsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsCard.swift; sourceTree = "<group>"; };
+		FEC6A5D92EF7BDB4001C4DFB /* AnalyticsDomainRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsDomainRow.swift; sourceTree = "<group>"; };
+		FEC6A5DB2EF7BDDF001C4DFB /* TimeRangePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeRangePicker.swift; sourceTree = "<group>"; };
+		FEC6A5DE2EF7C11F001C4DFB /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		FEC6A5EF2EFA7C34001C4DFB /* SearchSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchSheetView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		FEC6A5A32EF7AF02001C4DFB /* Exceptions for "DomaSecure" folder in "DomaSecure" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				ContentView.swift,
+				Info.plist,
+			);
+			target = FEC6A5732EF6FB00001C4DFB /* DomaSecure */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		FEC6A5762EF6FB00001C4DFB /* DomaSecure */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				FEC6A5A32EF7AF02001C4DFB /* Exceptions for "DomaSecure" folder in "DomaSecure" target */,
+			);
 			path = DomaSecure;
+			sourceTree = "<group>";
+		};
+		FEC6A5982EF7A9D0001C4DFB /* App */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = App;
+			sourceTree = "<group>";
+		};
+		FEC6A5A02EF7AA00001C4DFB /* UI */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = UI;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -23,17 +133,54 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FE662D632F07D964006A68F1 /* Web3 in Frameworks */,
+				FE662D232F0547EA006A68F1 /* WalletConnect in Frameworks */,
+				FE662D2B2F054819006A68F1 /* WalletConnectIdentity in Frameworks */,
+				FE662D1F2F0547EA006A68F1 /* ReownRouter in Frameworks */,
+				FE662D252F0547EA006A68F1 /* WalletConnectNetworking in Frameworks */,
+				FE662D182F054635006A68F1 /* Starscream in Frameworks */,
+				FE662D652F07D964006A68F1 /* Web3ContractABI in Frameworks */,
+				FE662D1B2F0547EA006A68F1 /* ReownAppKit in Frameworks */,
+				FE662D672F07D964006A68F1 /* Web3PromiseKit in Frameworks */,
+				FE4A7C802F41C72700BC049D /* XMTPiOS in Frameworks */,
+
+				FE662D212F0547EA006A68F1 /* ReownWalletKit in Frameworks */,
+				FE662D272F0547EA006A68F1 /* WalletConnectNotify in Frameworks */,
+				FE662D1D2F0547EA006A68F1 /* ReownAppKitUI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		FE03CC702EFD088400ABF095 /* API */ = {
+			isa = PBXGroup;
+			children = (
+				FE03CC752EFD094500ABF095 /* DomaAPI.swift */,
+				FE03CC732EFD092A00ABF095 /* DTOs.swift */,
+				FE03CC712EFD08AA00ABF095 /* APIClient.swift */,
+			);
+			path = API;
+			sourceTree = "<group>";
+		};
+		FE2A3A002F39A9D900C3BEC9 /* Messaging */ = {
+			isa = PBXGroup;
+			children = (
+				FE2A3A012F39A9EE00C3BEC9 /* XmtpService.swift */,
+			);
+			path = Messaging;
+			sourceTree = "<group>";
+		};
 		FEC6A56B2EF6FB00001C4DFB = {
 			isa = PBXGroup;
 			children = (
+				FE662D352F078C1F006A68F1 /* Secrets.xcconfig */,
+				FEC6A5F32EFA8D54001C4DFB /* Services */,
 				FEC6A5762EF6FB00001C4DFB /* DomaSecure */,
 				FEC6A5752EF6FB00001C4DFB /* Products */,
+				FEC6A5982EF7A9D0001C4DFB /* App */,
+				FEC6A5A02EF7AA00001C4DFB /* UI */,
+				FEC6A5BE2EF7B462001C4DFB /* Features */,
 			);
 			sourceTree = "<group>";
 		};
@@ -43,6 +190,92 @@
 				FEC6A5742EF6FB00001C4DFB /* DomaSecure.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		FEC6A5BE2EF7B462001C4DFB /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				FEC6A5DD2EF7C10F001C4DFB /* Settings */,
+				FEC6A5D42EF7BD31001C4DFB /* Analytics */,
+				FEC6A5C92EF7B860001C4DFB /* Domains */,
+				FEC6A5C42EF7B495001C4DFB /* Chats */,
+				FEC6A5BB2EF7B462001C4DFB /* DomainPickerView.swift */,
+				FEC6A5BC2EF7B462001C4DFB /* MainTabView.swift */,
+				FEC6A5BD2EF7B462001C4DFB /* OnboardingView.swift */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+		FEC6A5C42EF7B495001C4DFB /* Chats */ = {
+			isa = PBXGroup;
+			children = (
+				FEC6A5C52EF7B4F0001C4DFB /* ChatDetailView.swift */,
+				FEC6A5C22EF7B472001C4DFB /* ChatsView.swift */,
+			);
+			path = Chats;
+			sourceTree = "<group>";
+		};
+		FEC6A5C92EF7B860001C4DFB /* Domains */ = {
+			isa = PBXGroup;
+			children = (
+				FE662D0D2EFEAF55006A68F1 /* DomainSwitchSheet.swift */,
+				FE662D0B2EFEAF34006A68F1 /* DomainCardRow.swift */,
+				FEC6A5EF2EFA7C34001C4DFB /* SearchSheetView.swift */,
+				FEC6A5D22EF7BBCE001C4DFB /* AddDomainSearchSheet.swift */,
+				FEC6A5D02EF7B901001C4DFB /* VerifyAndSignView.swift */,
+				FEC6A5CE2EF7B8DB001C4DFB /* ConfigureDNSView.swift */,
+				FEC6A5CC2EF7B8A6001C4DFB /* DomainDetailView.swift */,
+				FEC6A5CA2EF7B87B001C4DFB /* DomainsView.swift */,
+				FE55D23A2F39FCA60094834A /* AppErrors.swift */,
+			);
+			path = Domains;
+			sourceTree = "<group>";
+		};
+		FEC6A5D42EF7BD31001C4DFB /* Analytics */ = {
+			isa = PBXGroup;
+			children = (
+				FEC6A5DB2EF7BDDF001C4DFB /* TimeRangePicker.swift */,
+				FEC6A5D92EF7BDB4001C4DFB /* AnalyticsDomainRow.swift */,
+				FEC6A5D72EF7BD6C001C4DFB /* AnalyticsCard.swift */,
+				FEC6A5D52EF7BD49001C4DFB /* AnalyticsView.swift */,
+			);
+			path = Analytics;
+			sourceTree = "<group>";
+		};
+		FEC6A5DD2EF7C10F001C4DFB /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				FEC6A5DE2EF7C11F001C4DFB /* SettingsView.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		FEC6A5F32EFA8D54001C4DFB /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				FE2A3A002F39A9D900C3BEC9 /* Messaging */,
+				FE662D372F07931E006A68F1 /* Env.swift */,
+				FE03CC702EFD088400ABF095 /* API */,
+				FEC6A5F42EFA8D65001C4DFB /* WalletConnect */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		FEC6A5F42EFA8D65001C4DFB /* WalletConnect */ = {
+			isa = PBXGroup;
+			children = (
+				FE662D6A2F0BE2E8006A68F1 /* ComponentLibraryView.swift */,
+				FE662D682F0BDE4C006A68F1 /* ContentView.swift */,
+				FE662D492F07D261006A68F1 /* AppViewModal.swift */,
+				FE662D472F07D0F7006A68F1 /* DefaultCryptoProvider.swift */,
+				FE662D452F07D07B006A68F1 /* WCSocketFactory.swift */,
+				FE662D432F07CEF6006A68F1 /* AppBootStrap.swift */,
+				FE662D412F07C630006A68F1 /* DynamicAuthSession.swift */,
+				FE662D3F2F07A5CD006A68F1 /* SafariView.swift */,
+				FE662D3B2F07A042006A68F1 /* DynamicAuthWebView.swift */,
+				FE662D392F079370006A68F1 /* DynamicManager.swift */,
+			);
+			path = WalletConnect;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -62,9 +295,25 @@
 			);
 			fileSystemSynchronizedGroups = (
 				FEC6A5762EF6FB00001C4DFB /* DomaSecure */,
+				FEC6A5982EF7A9D0001C4DFB /* App */,
+				FEC6A5A02EF7AA00001C4DFB /* UI */,
 			);
 			name = DomaSecure;
 			packageProductDependencies = (
+				FE662D172F054635006A68F1 /* Starscream */,
+				FE662D1A2F0547EA006A68F1 /* ReownAppKit */,
+				FE662D1C2F0547EA006A68F1 /* ReownAppKitUI */,
+				FE662D1E2F0547EA006A68F1 /* ReownRouter */,
+				FE662D202F0547EA006A68F1 /* ReownWalletKit */,
+				FE662D222F0547EA006A68F1 /* WalletConnect */,
+				FE662D242F0547EA006A68F1 /* WalletConnectNetworking */,
+				FE662D262F0547EA006A68F1 /* WalletConnectNotify */,
+				FE662D2A2F054819006A68F1 /* WalletConnectIdentity */,
+				FE662D622F07D964006A68F1 /* Web3 */,
+				FE662D642F07D964006A68F1 /* Web3ContractABI */,
+				FE662D662F07D964006A68F1 /* Web3PromiseKit */,
+
+				FE4A7C7F2F41C72700BC049D /* XMTPiOS */,
 			);
 			productName = DomaSecure;
 			productReference = FEC6A5742EF6FB00001C4DFB /* DomaSecure.app */;
@@ -94,6 +343,12 @@
 			);
 			mainGroup = FEC6A56B2EF6FB00001C4DFB;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				FE662D112F0540CB006A68F1 /* XCRemoteSwiftPackageReference "reown-swift" */,
+				FE662D162F054635006A68F1 /* XCRemoteSwiftPackageReference "Starscream" */,
+				FE662D612F07D964006A68F1 /* XCRemoteSwiftPackageReference "Web3.swift" */,
+				FE4A7C7C2F41C72700BC049D /* XCRemoteSwiftPackageReference "xmtp-ios" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = FEC6A5752EF6FB00001C4DFB /* Products */;
 			projectDirPath = "";
@@ -119,6 +374,40 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FE662D422F07C63B006A68F1 /* DynamicAuthSession.swift in Sources */,
+				FE662D482F07D100006A68F1 /* DefaultCryptoProvider.swift in Sources */,
+				FE662D382F079327006A68F1 /* Env.swift in Sources */,
+				FE03CC762EFD095500ABF095 /* DomaAPI.swift in Sources */,
+				FEC6A5CF2EF7B8EC001C4DFB /* ConfigureDNSView.swift in Sources */,
+				FE662D442F07CEFF006A68F1 /* AppBootStrap.swift in Sources */,
+				FE662D6B2F0BE2F5006A68F1 /* ComponentLibraryView.swift in Sources */,
+				FEC6A5D62EF7BD53001C4DFB /* AnalyticsView.swift in Sources */,
+				FEC6A5C32EF7B480001C4DFB /* ChatsView.swift in Sources */,
+				FE03CC722EFD08B700ABF095 /* APIClient.swift in Sources */,
+				FEC6A5DF2EF7C128001C4DFB /* SettingsView.swift in Sources */,
+				FEC6A5C62EF7B4FB001C4DFB /* ChatDetailView.swift in Sources */,
+				FE662D692F0BDE64006A68F1 /* ContentView.swift in Sources */,
+				FE662D0C2EFEAF44006A68F1 /* DomainCardRow.swift in Sources */,
+				FE662D0E2EFEAF64006A68F1 /* DomainSwitchSheet.swift in Sources */,
+				FE662D4A2F07D266006A68F1 /* AppViewModal.swift in Sources */,
+				FE662D3C2F07A04C006A68F1 /* DynamicAuthWebView.swift in Sources */,
+				FEC6A5BF2EF7B462001C4DFB /* DomainPickerView.swift in Sources */,
+				FEC6A5CB2EF7B885001C4DFB /* DomainsView.swift in Sources */,
+				FEC6A5C02EF7B462001C4DFB /* MainTabView.swift in Sources */,
+				FEC6A5D82EF7BD7A001C4DFB /* AnalyticsCard.swift in Sources */,
+				FEC6A5F02EFA7C43001C4DFB /* SearchSheetView.swift in Sources */,
+				FE55D23B2F39FCA60094834A /* AppErrors.swift in Sources */,
+				FEC6A5DC2EF7BDF4001C4DFB /* TimeRangePicker.swift in Sources */,
+				FEC6A5C12EF7B462001C4DFB /* OnboardingView.swift in Sources */,
+				FE662D3A2F079377006A68F1 /* DynamicManager.swift in Sources */,
+				FEC6A5D32EF7BBE8001C4DFB /* AddDomainSearchSheet.swift in Sources */,
+				FE662D402F07A5D4006A68F1 /* SafariView.swift in Sources */,
+				FE662D462F07D088006A68F1 /* WCSocketFactory.swift in Sources */,
+				FEC6A5DA2EF7BDC6001C4DFB /* AnalyticsDomainRow.swift in Sources */,
+				FEC6A5D12EF7B918001C4DFB /* VerifyAndSignView.swift in Sources */,
+				FEC6A5CD2EF7B8BC001C4DFB /* DomainDetailView.swift in Sources */,
+				FE2A3A022F39AA0400C3BEC9 /* XmtpService.swift in Sources */,
+				FE03CC742EFD092F00ABF095 /* DTOs.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -127,6 +416,7 @@
 /* Begin XCBuildConfiguration section */
 		FEC6A57D2EF6FB02001C4DFB /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = FE662D352F078C1F006A68F1 /* Secrets.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -177,6 +467,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				"INFOPLIST_FILE[sdk=*]" = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
@@ -190,6 +481,7 @@
 		};
 		FEC6A57E2EF6FB02001C4DFB /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = FE662D352F078C1F006A68F1 /* Secrets.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -234,6 +526,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				"INFOPLIST_FILE[sdk=*]" = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = NO;
@@ -246,18 +539,23 @@
 		};
 		FEC6A5802EF6FB02001C4DFB /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = FE662D352F078C1F006A68F1 /* Secrets.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = DomaSecure/DomaSecure.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = BU6287YTZS;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = DomaSecure/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -277,18 +575,23 @@
 		};
 		FEC6A5812EF6FB02001C4DFB /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = FE662D352F078C1F006A68F1 /* Secrets.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = DomaSecure/DomaSecure.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = BU6287YTZS;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = DomaSecure/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -328,6 +631,110 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		FE4A7C7C2F41C72700BC049D /* XCRemoteSwiftPackageReference "xmtp-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/xmtp/xmtp-ios";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.9.0;
+			};
+		};
+		FE662D112F0540CB006A68F1 /* XCRemoteSwiftPackageReference "reown-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/reown-com/reown-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.0.0;
+			};
+		};
+		FE662D162F054635006A68F1 /* XCRemoteSwiftPackageReference "Starscream" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/daltoniam/Starscream";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.0.8;
+			};
+		};
+		FE662D612F07D964006A68F1 /* XCRemoteSwiftPackageReference "Web3.swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/chainnodesorg/Web3.swift.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.8.8;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+
+		FE4A7C7F2F41C72700BC049D /* XMTPiOS */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FE4A7C7C2F41C72700BC049D /* XCRemoteSwiftPackageReference "xmtp-ios" */;
+			productName = XMTPiOS;
+		};
+		FE662D172F054635006A68F1 /* Starscream */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FE662D162F054635006A68F1 /* XCRemoteSwiftPackageReference "Starscream" */;
+			productName = Starscream;
+		};
+		FE662D1A2F0547EA006A68F1 /* ReownAppKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FE662D112F0540CB006A68F1 /* XCRemoteSwiftPackageReference "reown-swift" */;
+			productName = ReownAppKit;
+		};
+		FE662D1C2F0547EA006A68F1 /* ReownAppKitUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FE662D112F0540CB006A68F1 /* XCRemoteSwiftPackageReference "reown-swift" */;
+			productName = ReownAppKitUI;
+		};
+		FE662D1E2F0547EA006A68F1 /* ReownRouter */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FE662D112F0540CB006A68F1 /* XCRemoteSwiftPackageReference "reown-swift" */;
+			productName = ReownRouter;
+		};
+		FE662D202F0547EA006A68F1 /* ReownWalletKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FE662D112F0540CB006A68F1 /* XCRemoteSwiftPackageReference "reown-swift" */;
+			productName = ReownWalletKit;
+		};
+		FE662D222F0547EA006A68F1 /* WalletConnect */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FE662D112F0540CB006A68F1 /* XCRemoteSwiftPackageReference "reown-swift" */;
+			productName = WalletConnect;
+		};
+		FE662D242F0547EA006A68F1 /* WalletConnectNetworking */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FE662D112F0540CB006A68F1 /* XCRemoteSwiftPackageReference "reown-swift" */;
+			productName = WalletConnectNetworking;
+		};
+		FE662D262F0547EA006A68F1 /* WalletConnectNotify */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FE662D112F0540CB006A68F1 /* XCRemoteSwiftPackageReference "reown-swift" */;
+			productName = WalletConnectNotify;
+		};
+		FE662D2A2F054819006A68F1 /* WalletConnectIdentity */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FE662D112F0540CB006A68F1 /* XCRemoteSwiftPackageReference "reown-swift" */;
+			productName = WalletConnectIdentity;
+		};
+		FE662D622F07D964006A68F1 /* Web3 */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FE662D612F07D964006A68F1 /* XCRemoteSwiftPackageReference "Web3.swift" */;
+			productName = Web3;
+		};
+		FE662D642F07D964006A68F1 /* Web3ContractABI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FE662D612F07D964006A68F1 /* XCRemoteSwiftPackageReference "Web3.swift" */;
+			productName = Web3ContractABI;
+		};
+		FE662D662F07D964006A68F1 /* Web3PromiseKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FE662D612F07D964006A68F1 /* XCRemoteSwiftPackageReference "Web3.swift" */;
+			productName = Web3PromiseKit;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = FEC6A56C2EF6FB00001C4DFB /* Project object */;
 }

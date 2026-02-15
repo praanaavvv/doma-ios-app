@@ -1,0 +1,40 @@
+import Foundation
+import SwiftUI
+import Combine
+
+@MainActor
+final class AppSession: ObservableObject {
+    @Published var isAuthed: Bool = false
+
+    // ✅ the Domains screen is clearly reading this
+    @Published var walletAddress: String? = nil
+
+    // ✅ Domains screen should render from this
+    @Published var domains: [String] = []
+    @Published var activeDomain: String? = nil
+
+    @Published var isLoadingDomains: Bool = false
+    @Published var domainsError: String? = nil
+
+    func refreshDomains() async {
+        guard let addr = walletAddress, !addr.isEmpty else {
+            domains = []
+            domainsError = "Wallet address not set."
+            return
+        }
+
+        isLoadingDomains = true
+        domainsError = nil
+        defer { isLoadingDomains = false }
+
+        do {
+            let result = try await DomaAPI.shared.fetchDomains(owner: addr)
+            // ✅ update exactly what the UI shows
+            domains = result
+        } catch {
+            domains = []
+            domainsError = error.localizedDescription
+        }
+    }
+}
+
