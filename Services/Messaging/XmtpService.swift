@@ -251,12 +251,14 @@ final class XmtpService: ObservableObject {
 
         let allMessages = try await dm.messages()
 
-        // Assume we don't have client.inboxId, so omit isMine or use placeholder false
-        self.messages = allMessages.map { msg in
-            ChatMessage(
+        self.messages = allMessages.compactMap { msg in
+            guard (try? msg.encodedContent.type) == ContentTypeText else { return nil }
+            guard let content: String = try? msg.content(),
+                  !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+            return ChatMessage(
                 id: msg.id,
-                text: (try? msg.content()) ?? "",
-                isMine: false,  // Ownership check omitted due to no client.inboxId
+                text: content,
+                isMine: false,
                 createdAt: msg.sentAt
             )
         }
@@ -266,11 +268,14 @@ final class XmtpService: ObservableObject {
             guard let self else { return }
             do {
                 for try await msg in dm.streamMessages() {
+                    guard (try? msg.encodedContent.type) == ContentTypeText else { continue }
+                    guard let content: String = try? msg.content(),
+                          !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { continue }
                     await MainActor.run {
                         let new = ChatMessage(
                             id: msg.id,
-                            text: (try? msg.content()) ?? "",
-                            isMine: false, // Ownership check omitted
+                            text: content,
+                            isMine: false,
                             createdAt: msg.sentAt
                         )
                         if !self.messages.contains(where: { $0.id == new.id }) {
@@ -602,7 +607,10 @@ final class XmtpService: ObservableObject {
         }
         
         self.messages = allMessages.compactMap { msg in
-            guard let content: String = try? msg.content() else { return nil }
+            // Only show text messages — skip GroupUpdated, reactions, read receipts, etc.
+            guard (try? msg.encodedContent.type) == ContentTypeText else { return nil }
+            guard let content: String = try? msg.content(),
+                  !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
             return ChatMessage(
                 id: msg.id,
                 text: content,
@@ -618,7 +626,10 @@ final class XmtpService: ObservableObject {
             guard let self else { return }
             do {
                 for try await msg in group.streamMessages() {
-                    guard let content: String = try? msg.content() else { continue }
+                    // Only show text messages
+                    guard (try? msg.encodedContent.type) == ContentTypeText else { continue }
+                    guard let content: String = try? msg.content(),
+                          !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { continue }
                     await MainActor.run {
                         let new = ChatMessage(
                             id: msg.id,
