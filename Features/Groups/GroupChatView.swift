@@ -12,137 +12,312 @@ struct GroupChatView: View {
     @EnvironmentObject var xmtpService: XmtpService
     @EnvironmentObject var session: AppSession
     @StateObject private var viewModel = GroupChatViewModel()
+    @State private var showCreateGroup = false
     
     var body: some View {
         NavigationStack {
-            VStack {
-                // Domain Selector
-                HStack {
-                    Text("Your Domain:")
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                    Spacer()
-                    Picker("Domain", selection: $viewModel.selectedDomain) {
-                        ForEach(viewModel.domains, id: \.self) { domain in
-                            Text(domain).tag(domain)
-                        }
-                    }
-                    .pickerStyle(.menu)
-                    .onChange(of: viewModel.selectedDomain) { newValue in
-                        Task { await viewModel.refreshConversations() }
-                    }
-                }
-                .padding()
-                .background(Color(.systemGray6))
+            VStack(spacing: 0) {
+                // Domain selector header
+                domainSelector
                 
-                // Create Group Section
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("CREATE GROUP")
-                        .font(.caption)
-                        .fontWeight(.bold)
-                        .foregroundColor(.gray)
-                    
-                    TextField("Group Name", text: $viewModel.newGroupName)
-                        .textFieldStyle(.roundedBorder)
-                    
-                    HStack {
-                        TextField("Add member domain...", text: $viewModel.newMemberDomain)
-                            .textFieldStyle(.roundedBorder)
-                            .autocapitalization(.none)
-                            .onChange(of: viewModel.newMemberDomain) { newValue in
-                                viewModel.validateMemberDomain(newValue)
-                            }
-                        
-                        if viewModel.memberStatus == .checking {
-                            ProgressView()
-                        } else if viewModel.memberStatus == .valid {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundColor(.green)
-                        } else if viewModel.memberStatus == .invalid {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundColor(.red)
-                        }
-                        
-                        Button {
-                            viewModel.addMemberToSelection()
-                        } label: {
-                            Image(systemName: "plus")
-                                .padding(8)
-                                .background(viewModel.memberStatus == .valid ? Color.blue : Color.gray)
-                                .foregroundColor(.white)
-                                .cornerRadius(8)
-                        }
-                        .disabled(viewModel.memberStatus != .valid)
-                    }
-                    
-                    // Selected Members Chips
-                    if !viewModel.selectedMembers.isEmpty {
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack {
-                                ForEach(viewModel.selectedMembers, id: \.self) { member in
-                                    HStack(spacing: 4) {
-                                        Text(member)
-                                            .font(.caption)
-                                        Button {
-                                            viewModel.removeMemberFromSelection(member)
-                                        } label: {
-                                            Image(systemName: "xmark")
-                                                .font(.caption2)
-                                        }
-                                    }
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 4)
-                                    .background(Color.blue.opacity(0.2))
-                                    .cornerRadius(12)
-                                }
-                            }
-                        }
-                    }
-                    
+                // Create group expandable section
+                if showCreateGroup {
+                    createGroupSection
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .top).combined(with: .opacity),
+                            removal: .opacity
+                        ))
+                }
+                
+                // Group conversations list
+                if viewModel.groupConversations.isEmpty {
+                    emptyState
+                } else {
+                    groupList
+                }
+            }
+            .background(Color(.systemGroupedBackground))
+            .navigationTitle("Groups")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
-                        Task {
-                            await viewModel.createGroup(xmtpService: xmtpService)
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                            showCreateGroup.toggle()
                         }
                     } label: {
-                        HStack {
-                            if viewModel.isCreating {
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                            }
-                            Text(viewModel.isCreating ? "Creating..." : "Create Group")
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background((viewModel.newGroupName.isEmpty || viewModel.selectedMembers.isEmpty) ? Color.gray : Color.green)
-                        .foregroundColor(.white)
-                        .cornerRadius(8)
-                    }
-                    .disabled(viewModel.isCreating || viewModel.newGroupName.isEmpty || viewModel.selectedMembers.isEmpty)
-                }
-                .padding()
-                .background(Color(.systemGray6))
-                .cornerRadius(10)
-                .padding(.horizontal)
-                
-                // Group List
-                List(viewModel.groupConversations, id: \.conversationId) { group in
-                    NavigationLink(destination: GroupDetailView(group: group, viewModel: viewModel)) {
-                        VStack(alignment: .leading) {
-                            Text(group.metadata.name ?? "Unnamed Group")
-                                .font(.headline)
-                            Text("Created by \(group.withDomain)")
-                                .font(.caption)
-                                .foregroundColor(.gray)
-                        }
+                        Image(systemName: showCreateGroup ? "xmark" : "plus")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(.white)
+                            .frame(width: 30, height: 30)
+                            .background(
+                                Circle()
+                                    .fill(LinearGradient(
+                                        colors: showCreateGroup
+                                            ? [Color(.systemGray3), Color(.systemGray3)]
+                                            : [.blue, .blue.opacity(0.7)],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ))
+                            )
                     }
                 }
-                .listStyle(.plain)
             }
-            .navigationTitle("Groups")
             .onAppear {
                 Task { await viewModel.initialLoad(walletAddress: session.walletAddress) }
             }
         }
+    }
+    
+    // MARK: - Domain Selector
+    
+    private var domainSelector: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "globe")
+                .font(.system(size: 14))
+                .foregroundStyle(.secondary)
+            
+            Text("Active domain")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(.secondary)
+            
+            Spacer()
+            
+            Picker("Domain", selection: $viewModel.selectedDomain) {
+                ForEach(viewModel.domains, id: \.self) { domain in
+                    Text(domain).tag(domain)
+                }
+            }
+            .pickerStyle(.menu)
+            .tint(.blue)
+            .onChange(of: viewModel.selectedDomain) { _ in
+                Task { await viewModel.refreshConversations() }
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(.ultraThinMaterial)
+    }
+    
+    // MARK: - Create Group Section
+    
+    private var createGroupSection: some View {
+        VStack(spacing: 14) {
+            // Group name input
+            HStack(spacing: 10) {
+                Image(systemName: "pencil.line")
+                    .font(.system(size: 14))
+                    .foregroundStyle(.secondary)
+                
+                TextField("Group name", text: $viewModel.newGroupName)
+                    .font(.system(size: 15))
+            }
+            .padding(12)
+            .background(Color(.systemBackground))
+            .cornerRadius(12)
+            
+            // Add member input
+            HStack(spacing: 8) {
+                Image(systemName: "person.badge.plus")
+                    .font(.system(size: 14))
+                    .foregroundStyle(.secondary)
+                
+                TextField("Member domain…", text: $viewModel.newMemberDomain)
+                    .font(.system(size: 15))
+                    .autocapitalization(.none)
+                    .disableAutocorrection(true)
+                    .onChange(of: viewModel.newMemberDomain) { newValue in
+                        viewModel.validateMemberDomain(newValue)
+                    }
+                
+                // Status indicator
+                Group {
+                    if viewModel.memberStatus == .checking {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                    } else if viewModel.memberStatus == .valid {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.green)
+                            .transition(.scale.combined(with: .opacity))
+                    } else if viewModel.memberStatus == .invalid {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(.red)
+                            .transition(.scale.combined(with: .opacity))
+                    }
+                }
+                .animation(.easeInOut(duration: 0.2), value: viewModel.memberStatus)
+                
+                Button {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        viewModel.addMemberToSelection()
+                    }
+                } label: {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 24))
+                        .foregroundColor(viewModel.memberStatus == .valid ? .blue : Color(.systemGray4))
+                }
+                .disabled(viewModel.memberStatus != .valid)
+            }
+            .padding(12)
+            .background(Color(.systemBackground))
+            .cornerRadius(12)
+
+            // Selected members chips
+            if !viewModel.selectedMembers.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(viewModel.selectedMembers, id: \.self) { member in
+                            HStack(spacing: 6) {
+                                Circle()
+                                    .fill(Color.blue.opacity(0.3))
+                                    .frame(width: 22, height: 22)
+                                    .overlay(
+                                        Text(String(member.prefix(1)).uppercased())
+                                            .font(.system(size: 10, weight: .bold))
+                                            .foregroundColor(.blue)
+                                    )
+                                
+                                Text(member)
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundColor(.primary)
+                                
+                                Button {
+                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                        viewModel.removeMemberFromSelection(member)
+                                    }
+                                } label: {
+                                    Image(systemName: "xmark")
+                                        .font(.system(size: 9, weight: .bold))
+                                        .foregroundColor(.secondary)
+                                        .padding(4)
+                                        .background(Circle().fill(Color(.systemGray5)))
+                                }
+                            }
+                            .padding(.leading, 4)
+                            .padding(.trailing, 8)
+                            .padding(.vertical, 6)
+                            .background(
+                                Capsule()
+                                    .fill(Color(.systemBackground))
+                                    .shadow(color: .black.opacity(0.05), radius: 2, y: 1)
+                            )
+                        }
+                    }
+                }
+            }
+            
+            // Create button
+            Button {
+                Task { await viewModel.createGroup(xmtpService: xmtpService) }
+            } label: {
+                HStack(spacing: 8) {
+                    if viewModel.isCreating {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            .scaleEffect(0.85)
+                    }
+                    Text(viewModel.isCreating ? "Creating…" : "Create Group")
+                        .font(.system(size: 15, weight: .semibold))
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 13)
+                .background(
+                    LinearGradient(
+                        colors: (viewModel.newGroupName.isEmpty || viewModel.selectedMembers.isEmpty)
+                            ? [Color(.systemGray4), Color(.systemGray4)]
+                            : [.blue, .blue.opacity(0.8)],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .foregroundColor(.white)
+                .cornerRadius(12)
+            }
+            .disabled(viewModel.isCreating || viewModel.newGroupName.isEmpty || viewModel.selectedMembers.isEmpty)
+        }
+        .padding(16)
+        .background(Color(.secondarySystemGroupedBackground))
+    }
+    
+    // MARK: - Group List
+    
+    private var groupList: some View {
+        List(viewModel.groupConversations, id: \.conversationId) { group in
+            ZStack {
+                NavigationLink(destination: GroupDetailView(group: group, viewModel: viewModel)) {
+                    EmptyView()
+                }
+                .opacity(0)
+                
+                groupRow(group)
+            }
+            .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+            .listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
+        }
+        .listStyle(.plain)
+    }
+    
+    private func groupRow(_ group: GroupConversation) -> some View {
+        HStack(spacing: 14) {
+            // Group avatar
+            ZStack {
+                Circle()
+                    .fill(LinearGradient(
+                        colors: [.blue.opacity(0.6), .purple.opacity(0.4)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ))
+                    .frame(width: 48, height: 48)
+                
+                Image(systemName: "person.3.fill")
+                    .font(.system(size: 16))
+                    .foregroundColor(.white)
+            }
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(group.metadata.name ?? "Unnamed Group")
+                    .font(.system(size: 16, weight: .semibold))
+                    .lineLimit(1)
+                
+                HStack(spacing: 4) {
+                    Image(systemName: "person.fill")
+                        .font(.system(size: 9))
+                    Text(group.withDomain)
+                        .lineLimit(1)
+                }
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
+            }
+            
+            Spacer()
+        }
+        .padding(12)
+        .background(Color(.systemBackground))
+        .cornerRadius(14)
+        .shadow(color: .black.opacity(0.04), radius: 4, y: 2)
+    }
+    
+    // MARK: - Empty State
+    
+    private var emptyState: some View {
+        VStack(spacing: 16) {
+            Spacer()
+            
+            Image(systemName: "bubble.left.and.bubble.right")
+                .font(.system(size: 48))
+                .foregroundStyle(.quaternary)
+            
+            Text("No groups yet")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(.secondary)
+            
+            Text("Tap + to create your first group")
+                .font(.system(size: 14))
+                .foregroundStyle(.tertiary)
+            
+            Spacer()
+        }
+        .frame(maxWidth: .infinity)
     }
 }
 
@@ -246,7 +421,7 @@ class GroupChatViewModel: ObservableObject {
     }
 }
 
-// MARK: - Detail View
+// MARK: - Group Detail View
 
 struct GroupDetailView: View {
     let group: GroupConversation
@@ -255,106 +430,46 @@ struct GroupDetailView: View {
     
     @State private var inputText: String = ""
     @State private var currentMembers: [String] = []
+    @State private var showMemberSheet = false
     
     // Add Member State
     @State private var isAddingMember = false
     @State private var addMemberDomain = ""
     
     var body: some View {
-        VStack {
-            // Chat Header Info
-            HStack {
-                Text(currentMembers.isEmpty ? "Loading members..." : "Members: \(currentMembers.joined(separator: ", "))")
-                    .font(.caption)
-                    .foregroundColor(.gray)
-                    .lineLimit(1)
-                Spacer()
-                
-                // Add Member UI
-                HStack {
-                    TextField("Add domain...", text: $addMemberDomain)
-                        .textFieldStyle(.roundedBorder)
-                        .frame(width: 120)
-                        .autocapitalization(.none)
-                    
-                    Button {
-                        Task { await addMember() }
-                    } label: {
-                        Text("Add")
-                            .font(.caption)
-                            .padding(6)
-                            .background(Color.blue)
-                            .foregroundColor(.white)
-                            .cornerRadius(4)
-                    }
-                    .disabled(addMemberDomain.isEmpty || isAddingMember)
-                }
-            }
-            .padding(.horizontal)
-            .padding(.top, 8)
+        VStack(spacing: 0) {
+            // Members bar
+            membersBar
             
-            // Messages List
-            ScrollViewReader { proxy in
-                ScrollView {
-                    LazyVStack(spacing: 8) {
-                        ForEach(xmtpService.messages) { msg in
-                            HStack {
-                                if msg.isMine {
-                                    Spacer()
-                                    Text(msg.text)
-                                        .padding(10)
-                                        .background(Color.blue)
-                                        .foregroundColor(.white)
-                                        .cornerRadius(16)
-                                        .padding(.trailing, 8)
-                                        // Specific styling for own messages
-                                } else {
-                                    VStack(alignment: .leading) {
-                                        // Sender name logic would go here if we had inboxId mapping
-                                        // Text(msg.senderName).font(.caption2)
-                                        Text(msg.text)
-                                            .padding(10)
-                                            .background(Color(.systemGray5))
-                                            .foregroundColor(.primary)
-                                            .cornerRadius(16)
-                                    }
-                                    .padding(.leading, 8)
-                                    Spacer()
-                                }
-                            }
-                            .id(msg.id)
+            // Messages
+            messagesArea
+            
+            // Input bar
+            inputBar
+        }
+        .background(Color(.systemGroupedBackground))
+        .navigationTitle(group.metadata.name ?? "Group")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    showMemberSheet = true
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "person.2")
+                            .font(.system(size: 13))
+                        if !currentMembers.isEmpty {
+                            Text("\(currentMembers.count)")
+                                .font(.system(size: 12, weight: .semibold))
                         }
                     }
-                    .padding(.vertical)
-                }
-                .onChange(of: xmtpService.messages) { _ in
-                    if let last = xmtpService.messages.last {
-                        withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
-                    }
+                    .foregroundColor(.blue)
                 }
             }
-            
-            // Input Area
-            HStack {
-                TextField("Message \(group.metadata.name ?? "Group")...", text: $inputText)
-                    .textFieldStyle(.roundedBorder)
-                    .submitLabel(.send)
-                    .onSubmit {
-                        Task { await sendMessage() }
-                    }
-                
-                Button {
-                    Task { await sendMessage() }
-                } label: {
-                    Image(systemName: "paperplane.fill")
-                        .foregroundColor(.blue)
-                }
-                .disabled(inputText.isEmpty || xmtpService.isSending)
-            }
-            .padding()
-            .background(Color(.systemGray6))
         }
-        .navigationTitle(group.metadata.name ?? "Group")
+        .sheet(isPresented: $showMemberSheet) {
+            memberManagementSheet
+        }
         .onAppear {
             Task {
                 await joinGroup()
@@ -365,6 +480,223 @@ struct GroupDetailView: View {
             xmtpService.stopStreaming()
         }
     }
+    
+    // MARK: - Members Bar
+    
+    private var membersBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(currentMembers, id: \.self) { member in
+                    HStack(spacing: 5) {
+                        Circle()
+                            .fill(Color.green)
+                            .frame(width: 6, height: 6)
+                        Text(member)
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 5)
+                    .background(Capsule().fill(Color(.systemBackground)))
+                }
+                
+                if currentMembers.isEmpty {
+                    Text("Loading members…")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.tertiary)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+        }
+        .background(.ultraThinMaterial)
+    }
+    
+    // MARK: - Messages Area
+    
+    private var messagesArea: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(spacing: 4) {
+                    ForEach(xmtpService.messages) { msg in
+                        messageBubble(msg)
+                            .id(msg.id)
+                    }
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+            }
+            .onChange(of: xmtpService.messages) { _ in
+                if let last = xmtpService.messages.last {
+                    withAnimation(.easeOut(duration: 0.2)) {
+                        proxy.scrollTo(last.id, anchor: .bottom)
+                    }
+                }
+            }
+        }
+    }
+    
+    private func messageBubble(_ msg: ChatMessage) -> some View {
+        HStack(alignment: .bottom, spacing: 8) {
+            if msg.isMine {
+                Spacer(minLength: 60)
+                
+                VStack(alignment: .trailing, spacing: 3) {
+                    Text("You")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(.secondary)
+                    
+                    Text(msg.text)
+                        .font(.system(size: 15))
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                        .background(
+                            LinearGradient(
+                                colors: [Color.blue, Color.blue.opacity(0.85)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .foregroundColor(.white)
+                        .cornerRadius(18, corners: [.topLeft, .topRight, .bottomLeft])
+                        .cornerRadius(6, corners: .bottomRight)
+                }
+            } else {
+                // Sender avatar
+                Circle()
+                    .fill(Color(.systemGray5))
+                    .frame(width: 28, height: 28)
+                    .overlay(
+                        Text(String((msg.senderDomain ?? "?").prefix(1)).uppercased())
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(.secondary)
+                    )
+                
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(msg.senderDomain ?? "Unknown")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(.secondary)
+                    
+                    Text(msg.text)
+                        .font(.system(size: 15))
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                        .background(Color(.systemBackground))
+                        .foregroundColor(.primary)
+                        .cornerRadius(18, corners: [.topLeft, .topRight, .bottomRight])
+                        .cornerRadius(6, corners: .bottomLeft)
+                        .shadow(color: .black.opacity(0.04), radius: 2, y: 1)
+                }
+                
+                Spacer(minLength: 60)
+            }
+        }
+        .padding(.vertical, 2)
+    }
+    
+    // MARK: - Input Bar
+    
+    private var inputBar: some View {
+        HStack(spacing: 10) {
+            TextField("Message…", text: $inputText, axis: .vertical)
+                .font(.system(size: 15))
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .background(Color(.systemBackground))
+                .cornerRadius(20)
+                .lineLimit(1...4)
+                .submitLabel(.send)
+                .onSubmit {
+                    Task { await sendMessage() }
+                }
+            
+            Button {
+                Task { await sendMessage() }
+            } label: {
+                Image(systemName: "arrow.up.circle.fill")
+                    .font(.system(size: 32))
+                    .foregroundStyle(
+                        inputText.isEmpty
+                        ? Color(.systemGray4)
+                        : Color.blue
+                    )
+            }
+            .disabled(inputText.isEmpty || xmtpService.isSending)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(.ultraThinMaterial)
+    }
+    
+    // MARK: - Member Management Sheet
+    
+    private var memberManagementSheet: some View {
+        NavigationStack {
+            List {
+                Section("Members") {
+                    ForEach(currentMembers, id: \.self) { member in
+                        HStack(spacing: 12) {
+                            Circle()
+                                .fill(LinearGradient(
+                                    colors: [.blue.opacity(0.5), .purple.opacity(0.4)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ))
+                                .frame(width: 36, height: 36)
+                                .overlay(
+                                    Text(String(member.prefix(1)).uppercased())
+                                        .font(.system(size: 14, weight: .bold))
+                                        .foregroundColor(.white)
+                                )
+                            
+                            Text(member)
+                                .font(.system(size: 15))
+                        }
+                    }
+                }
+                
+                Section("Add Member") {
+                    HStack(spacing: 10) {
+                        TextField("Domain…", text: $addMemberDomain)
+                            .autocapitalization(.none)
+                            .disableAutocorrection(true)
+                        
+                        Button {
+                            Task { await addMember() }
+                        } label: {
+                            if isAddingMember {
+                                ProgressView()
+                                    .scaleEffect(0.8)
+                            } else {
+                                Text("Add")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 7)
+                                    .background(
+                                        addMemberDomain.isEmpty
+                                        ? Color(.systemGray4)
+                                        : Color.blue
+                                    )
+                                    .cornerRadius(8)
+                            }
+                        }
+                        .disabled(addMemberDomain.isEmpty || isAddingMember)
+                    }
+                }
+            }
+            .navigationTitle("Members")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") { showMemberSheet = false }
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+    }
+    
+    // MARK: - Actions
     
     func joinGroup() async {
         do {
@@ -377,9 +709,6 @@ struct GroupDetailView: View {
     func fetchMembers() async {
         do {
             let memberData = try await DomaAPI.shared.getGroupConversationMembers(conversationId: group.conversationId)
-            // API returns array of strings (domains) or objects? 
-            // DomaAPI definition: `func getGroupConversationMembers(conversationId: String) async throws -> [String]`
-            // So it returns [String].
             currentMembers = memberData
         } catch {
             print("Error fetching members: \(error)")
@@ -394,7 +723,7 @@ struct GroupDetailView: View {
             try await xmtpService.send(text: text)
         } catch {
             print("Error sending message: \(error)")
-            inputText = text // restore on failure
+            inputText = text
         }
     }
     
@@ -406,10 +735,31 @@ struct GroupDetailView: View {
         do {
             try await xmtpService.addMember(groupId: group.conversationId, newMemberDomain: addMemberDomain)
             addMemberDomain = ""
-            // Refresh members
             await fetchMembers()
         } catch {
             print("Failed to add member: \(error)")
         }
+    }
+}
+
+// MARK: - Corner Radius Extension
+
+extension View {
+    func cornerRadius(_ radius: CGFloat, corners: UIRectCorner) -> some View {
+        clipShape(RoundedCorners(radius: radius, corners: corners))
+    }
+}
+
+struct RoundedCorners: Shape {
+    var radius: CGFloat = .infinity
+    var corners: UIRectCorner = .allCorners
+    
+    func path(in rect: CGRect) -> Path {
+        let path = UIBezierPath(
+            roundedRect: rect,
+            byRoundingCorners: corners,
+            cornerRadii: CGSize(width: radius, height: radius)
+        )
+        return Path(path.cgPath)
     }
 }

@@ -11,10 +11,11 @@ import SwiftUI
 struct ChatsView: View {
     @EnvironmentObject private var session: AppSession
     @EnvironmentObject private var dynamic: DynamicManager
+    @EnvironmentObject private var xmtp: XmtpService
 
     @State private var searchText = ""
-    @State private var showingNewChat = false
     @State private var isLoading = false
+    @State private var isSearchingDomain = false
     @State private var errorMessage: String?
     @State private var conversations: [ConversationItem] = []
 
@@ -28,10 +29,19 @@ struct ChatsView: View {
         }
     }
 
+    /// Show "Start chat" row when query looks like a domain and isn't already in the list
+    private var showNewChatOption: Bool {
+        let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return false }
+        // If there's already an exact-match conversation, don't offer "start new"
+        let alreadyExists = conversations.contains { $0.domain.lowercased() == trimmed.lowercased() }
+        return !alreadyExists
+    }
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 14) {
-                // Top bar
+                // Top bar — no + button
                 HStack {
                     Circle()
                         .fill(Color.blue.opacity(0.18))
@@ -46,22 +56,20 @@ struct ChatsView: View {
 
                     Spacer()
 
-                    Button { showingNewChat = true } label: {
-                        Image(systemName: "plus")
-                            .foregroundStyle(.primary)
-                            .frame(width: 34, height: 34)
-                            .background(Color(.systemGray6))
-                            .clipShape(Circle())
-                    }
+                    // Placeholder for symmetry
+                    Color.clear
+                        .frame(width: 34, height: 34)
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 6)
 
-                // Search pill (local filter over existing conversations)
-                SearchPill(text: $searchText)
+                // Search pill — dual purpose: filter existing + search new domains
+                SearchPill(text: $searchText, onSubmit: {
+                    Task { await startChatWithDomain() }
+                })
 
-                if isLoading {
-                    ProgressView()
+                if isLoading || isSearchingDomain {
+                    ProgressView(isSearchingDomain ? "Starting chat…" : "Loading…")
                         .padding(.top, 8)
                 } else if let errorMessage {
                     Text(errorMessage)
@@ -72,6 +80,35 @@ struct ChatsView: View {
 
                 // Conversations list
                 List {
+                    // "Start new chat" row when typing a domain
+                    if showNewChatOption && !isSearchingDomain {
+                        Button {
+                            Task { await startChatWithDomain() }
+                        } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: "plus.message.fill")
+                                    .font(.title3)
+                                    .foregroundColor(.blue)
+                                    .frame(width: 44, height: 44)
+                                    .background(Color.blue.opacity(0.1))
+                                    .clipShape(Circle())
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Start chat with **\(searchText.trimmingCharacters(in: .whitespacesAndNewlines))**")
+                                        .font(.system(size: 15))
+                                    Text("Search as domain")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.caption)
+                                    .foregroundStyle(.tertiary)
+                            }
+                            .padding(.vertical, 4)
+                        }
+                    }
+
                     ForEach(filteredConversations) { convo in
                         NavigationLink {
                             ChatDetailView(conversation: convo)
@@ -83,23 +120,93 @@ struct ChatsView: View {
                 .listStyle(.plain)
             }
             .task {
-                // MARK: - ⚠️ TEMPORARY: Sync hardcoded address from DynamicManager
                 if let addr = dynamic.walletAddress, session.walletAddress != addr {
                     session.walletAddress = addr
                 }
                 await loadConversations()
             }
-            .sheet(isPresented: $showingNewChat) {
-                // Search for a domain and start a new conversation
-                SearchSheetView { newConversation in
-                    // Insert or update in the current list
-                    if let index = conversations.firstIndex(where: { $0.id == newConversation.id }) {
-                        conversations[index] = newConversation
-                    } else {
-                        conversations.insert(newConversation, at: 0)
-                    }
+        }
+    }
+
+    // MARK: - Start new chat from search bar
+
+    private func startChatWithDomain() async {
+        let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        // Sync wallet address
+        if session.walletAddress == nil || session.walletAddress?.isEmpty == true {
+            if let addr = dynamic.walletAddress {
+                await MainActor.run { session.walletAddress = addr }
+            }
+        }
+
+        guard let wallet = session.walletAddress, !wallet.isEmpty else {
+            await MainActor.run { self.errorMessage = "Connect a wallet first to start chatting." }
+            return
+        }
+
+        await MainActor.run {
+            self.isSearchingDomain = true
+            self.errorMessage = nil
+        }
+
+        // Ensure active domain
+        if session.activeDomain == nil {
+            await session.refreshDomains()
+            if let first = session.domains.first {
+                await MainActor.run { session.activeDomain = first }
+            }
+        }
+
+        guard let senderDomain = session.activeDomain else {
+            await MainActor.run {
+                self.isSearchingDomain = false
+                self.errorMessage = "You need a Doma domain to start a chat."
+            }
+            return
+        }
+
+        do {
+            // 1. Validate domain
+            let ownerResponse = try await DomaAPI.shared.getOwnerByDomain(domain: trimmed)
+            guard let ownerAddress = ownerResponse.owner, !ownerAddress.isEmpty else {
+                throw SimpleError(message: "Domain not found.")
+            }
+
+            // 2. Create XMTP Conversation
+            let conversationId = try await xmtp.startNewChat(
+                senderDomain: senderDomain,
+                recipientDomain: trimmed,
+                recipientInboxId: "",
+                recipientAddress: ownerAddress
+            )
+
+            // 3. Build local ConversationItem
+            let newConversation = ConversationItem(
+                id: conversationId,
+                domain: trimmed,
+                status: "active",
+                lastActivity: ISO8601DateFormatter().string(from: Date()),
+                createdAt: ISO8601DateFormatter().string(from: Date()),
+                unreadCount: 0,
+                preview: "New conversation"
+            )
+
+            await MainActor.run {
+                self.isSearchingDomain = false
+                self.searchText = ""
+                // Insert at top or update
+                if let index = conversations.firstIndex(where: { $0.id == newConversation.id }) {
+                    conversations[index] = newConversation
+                } else {
+                    conversations.insert(newConversation, at: 0)
                 }
-                .environmentObject(session)
+            }
+        } catch {
+            await MainActor.run {
+                self.isSearchingDomain = false
+                self.errorMessage = error.localizedDescription
             }
         }
     }
@@ -120,39 +227,28 @@ struct ChatsView: View {
         }
 
         do {
-            // 1. Fetch user's domains to find the primary one
             let domains = try await DomaAPI.shared.fetchDomains(owner: wallet)
             
             guard let primaryDomain = domains.first else {
                 await MainActor.run {
                     self.conversations = []
                     self.isLoading = false
-                    // Optional: Show a message that they need a domain
-                    // self.errorMessage = "No domains found. Claim one to chat!"
                 }
                 return
             }
             
-            // 2. Fetch conversations for that domain
             let convos = try await DomaAPI.shared.getConversations(forDomain: primaryDomain)
             
             await MainActor.run {
-                // Map backend Conversation model to local ConversationItem if needed, 
-                // or if ConversationItem IS the model, assign directly.
-                // Assuming DomaAPI returns [Conversation] which might need mapping to [ConversationItem]
-                // or ConversationItem is an alias/type in the project.
-                // Let's check imports/types. If they match, assign.
-                // For now, I'll assume they need mapping or are compatible.
-                // Re-using the existing assignment logic:
                 self.conversations = convos.map { c in
                     ConversationItem(
                         id: c.conversationId,
                         domain: c.withDomain,
-                        status: "active", // Default since backend doesn't send status
+                        status: "active",
                         lastActivity: c.createdAt,
                         createdAt: c.createdAt,
-                        unreadCount: 0, // Backend doesn't send unread count yet
-                        preview: nil // Backend doesn't send preview yet
+                        unreadCount: 0,
+                        preview: nil
                     )
                 }
                 self.isLoading = false

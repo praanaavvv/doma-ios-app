@@ -23,6 +23,7 @@ struct ChatMessage: Identifiable, Equatable {
     let text: String
     let isMine: Bool
     let createdAt: Date
+    var senderDomain: String?
 }
 
 enum XmtpServiceError: LocalizedError {
@@ -574,10 +575,31 @@ final class XmtpService: ObservableObject {
             return try await group.send(content: text)
         })
         
-        // 4. Load Initial Messages
+        // 4. Load Initial Messages & Build inboxId→domain mapping
         try await group.sync()
         let allMessages = try await group.messages()
         let myInboxId = client.inboxID
+        
+        // Build inboxId → domain mapping (matches web's inboxIdToDomain)
+        var inboxIdToDomain: [String: String] = [:]
+        do {
+            let memberDomains = try await DomaAPI.shared.getGroupConversationMembers(conversationId: groupId)
+            for domain in memberDomains {
+                do {
+                    let ownerRes = try await DomaAPI.shared.getOwnerByDomain(domain: domain)
+                    if let address = ownerRes.owner {
+                        let identity = PublicIdentity(kind: .ethereum, identifier: address)
+                        if let inboxId = try await client.inboxIdFromIdentity(identity: identity) {
+                            inboxIdToDomain[inboxId] = domain
+                        }
+                    }
+                } catch {
+                    print("DEBUG: Failed to resolve inboxId for \(domain): \(error)")
+                }
+            }
+        } catch {
+            print("DEBUG: Failed to fetch group members: \(error)")
+        }
         
         self.messages = allMessages.compactMap { msg in
             guard let content: String = try? msg.content() else { return nil }
@@ -585,7 +607,8 @@ final class XmtpService: ObservableObject {
                 id: msg.id,
                 text: content,
                 isMine: msg.senderInboxId == myInboxId,
-                createdAt: msg.sentAt
+                createdAt: msg.sentAt,
+                senderDomain: inboxIdToDomain[msg.senderInboxId]
             )
         }
         .sorted { $0.createdAt < $1.createdAt }
@@ -601,7 +624,8 @@ final class XmtpService: ObservableObject {
                             id: msg.id,
                             text: content,
                             isMine: msg.senderInboxId == myInboxId,
-                            createdAt: msg.sentAt
+                            createdAt: msg.sentAt,
+                            senderDomain: inboxIdToDomain[msg.senderInboxId]
                         )
                         if !self.messages.contains(where: { $0.id == new.id }) {
                             self.messages.append(new)
