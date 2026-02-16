@@ -10,12 +10,9 @@
 		FE03CC722EFD08B700ABF095 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE03CC712EFD08AA00ABF095 /* APIClient.swift */; };
 		FE03CC742EFD092F00ABF095 /* DTOs.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE03CC732EFD092A00ABF095 /* DTOs.swift */; };
 		FE03CC762EFD095500ABF095 /* DomaAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE03CC752EFD094500ABF095 /* DomaAPI.swift */; };
+		FE0AE6F42F432599005B7511 /* GroupChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0AE6F22F432599005B7511 /* GroupChatView.swift */; };
 		FE2A3A022F39AA0400C3BEC9 /* XmtpService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE2A3A012F39A9EE00C3BEC9 /* XmtpService.swift */; };
-
 		FE4A7C802F41C72700BC049D /* XMTPiOS in Frameworks */ = {isa = PBXBuildFile; productRef = FE4A7C7F2F41C72700BC049D /* XMTPiOS */; };
-		FE55D23B2F39FCA60094834A /* AppErrors.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE55D23A2F39FCA60094834A /* AppErrors.swift */; };
-		FE662D0C2EFEAF44006A68F1 /* DomainCardRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE662D0B2EFEAF34006A68F1 /* DomainCardRow.swift */; };
-		FE662D0E2EFEAF64006A68F1 /* DomainSwitchSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE662D0D2EFEAF55006A68F1 /* DomainSwitchSheet.swift */; };
 		FE662D182F054635006A68F1 /* Starscream in Frameworks */ = {isa = PBXBuildFile; productRef = FE662D172F054635006A68F1 /* Starscream */; };
 		FE662D1B2F0547EA006A68F1 /* ReownAppKit in Frameworks */ = {isa = PBXBuildFile; productRef = FE662D1A2F0547EA006A68F1 /* ReownAppKit */; };
 		FE662D1D2F0547EA006A68F1 /* ReownAppKitUI in Frameworks */ = {isa = PBXBuildFile; productRef = FE662D1C2F0547EA006A68F1 /* ReownAppKitUI */; };
@@ -39,32 +36,33 @@
 		FE662D672F07D964006A68F1 /* Web3PromiseKit in Frameworks */ = {isa = PBXBuildFile; productRef = FE662D662F07D964006A68F1 /* Web3PromiseKit */; };
 		FE662D692F0BDE64006A68F1 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE662D682F0BDE4C006A68F1 /* ContentView.swift */; };
 		FE662D6B2F0BE2F5006A68F1 /* ComponentLibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE662D6A2F0BE2E8006A68F1 /* ComponentLibraryView.swift */; };
+		FEC286EA2F4362DD00669842 /* DomainsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEC286E52F4362DD00669842 /* DomainsView.swift */; };
+		FEC286EB2F4362DD00669842 /* AppErrors.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEC286E12F4362DD00669842 /* AppErrors.swift */; };
+		FEC286EC2F4362DD00669842 /* DomainDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEC286E42F4362DD00669842 /* DomainDetailView.swift */; };
+		FEC286ED2F4362DD00669842 /* VerifyAndSignView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEC286E82F4362DD00669842 /* VerifyAndSignView.swift */; };
+		FEC286EE2F4362DD00669842 /* ConfigureDNSView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEC286E22F4362DD00669842 /* ConfigureDNSView.swift */; };
+		FEC286EF2F4362DD00669842 /* SearchSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEC286E72F4362DD00669842 /* SearchSheetView.swift */; };
+		FEC286F02F4362DD00669842 /* DomainCardRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEC286E32F4362DD00669842 /* DomainCardRow.swift */; };
+		FEC286F12F4362DD00669842 /* AddDomainSearchSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEC286E02F4362DD00669842 /* AddDomainSearchSheet.swift */; };
+		FEC286F22F4362DD00669842 /* DomainSwitchSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEC286E62F4362DD00669842 /* DomainSwitchSheet.swift */; };
 		FEC6A5BF2EF7B462001C4DFB /* DomainPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEC6A5BB2EF7B462001C4DFB /* DomainPickerView.swift */; };
 		FEC6A5C02EF7B462001C4DFB /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEC6A5BC2EF7B462001C4DFB /* MainTabView.swift */; };
 		FEC6A5C12EF7B462001C4DFB /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEC6A5BD2EF7B462001C4DFB /* OnboardingView.swift */; };
 		FEC6A5C32EF7B480001C4DFB /* ChatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEC6A5C22EF7B472001C4DFB /* ChatsView.swift */; };
 		FEC6A5C62EF7B4FB001C4DFB /* ChatDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEC6A5C52EF7B4F0001C4DFB /* ChatDetailView.swift */; };
-		FEC6A5CB2EF7B885001C4DFB /* DomainsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEC6A5CA2EF7B87B001C4DFB /* DomainsView.swift */; };
-		FEC6A5CD2EF7B8BC001C4DFB /* DomainDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEC6A5CC2EF7B8A6001C4DFB /* DomainDetailView.swift */; };
-		FEC6A5CF2EF7B8EC001C4DFB /* ConfigureDNSView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEC6A5CE2EF7B8DB001C4DFB /* ConfigureDNSView.swift */; };
-		FEC6A5D12EF7B918001C4DFB /* VerifyAndSignView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEC6A5D02EF7B901001C4DFB /* VerifyAndSignView.swift */; };
-		FEC6A5D32EF7BBE8001C4DFB /* AddDomainSearchSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEC6A5D22EF7BBCE001C4DFB /* AddDomainSearchSheet.swift */; };
 		FEC6A5D62EF7BD53001C4DFB /* AnalyticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEC6A5D52EF7BD49001C4DFB /* AnalyticsView.swift */; };
 		FEC6A5D82EF7BD7A001C4DFB /* AnalyticsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEC6A5D72EF7BD6C001C4DFB /* AnalyticsCard.swift */; };
 		FEC6A5DA2EF7BDC6001C4DFB /* AnalyticsDomainRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEC6A5D92EF7BDB4001C4DFB /* AnalyticsDomainRow.swift */; };
 		FEC6A5DC2EF7BDF4001C4DFB /* TimeRangePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEC6A5DB2EF7BDDF001C4DFB /* TimeRangePicker.swift */; };
 		FEC6A5DF2EF7C128001C4DFB /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEC6A5DE2EF7C11F001C4DFB /* SettingsView.swift */; };
-		FEC6A5F02EFA7C43001C4DFB /* SearchSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEC6A5EF2EFA7C34001C4DFB /* SearchSheetView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		FE03CC712EFD08AA00ABF095 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
 		FE03CC732EFD092A00ABF095 /* DTOs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DTOs.swift; sourceTree = "<group>"; };
 		FE03CC752EFD094500ABF095 /* DomaAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DomaAPI.swift; sourceTree = "<group>"; };
+		FE0AE6F22F432599005B7511 /* GroupChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupChatView.swift; sourceTree = "<group>"; };
 		FE2A3A012F39A9EE00C3BEC9 /* XmtpService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XmtpService.swift; sourceTree = "<group>"; };
-		FE55D23A2F39FCA60094834A /* AppErrors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppErrors.swift; sourceTree = "<group>"; };
-		FE662D0B2EFEAF34006A68F1 /* DomainCardRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DomainCardRow.swift; sourceTree = "<group>"; };
-		FE662D0D2EFEAF55006A68F1 /* DomainSwitchSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DomainSwitchSheet.swift; sourceTree = "<group>"; };
 		FE662D352F078C1F006A68F1 /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
 		FE662D372F07931E006A68F1 /* Env.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Env.swift; sourceTree = "<group>"; };
 		FE662D392F079370006A68F1 /* DynamicManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DynamicManager.swift; sourceTree = "<group>"; };
@@ -77,23 +75,26 @@
 		FE662D492F07D261006A68F1 /* AppViewModal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppViewModal.swift; sourceTree = "<group>"; };
 		FE662D682F0BDE4C006A68F1 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		FE662D6A2F0BE2E8006A68F1 /* ComponentLibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComponentLibraryView.swift; sourceTree = "<group>"; };
+		FEC286E02F4362DD00669842 /* AddDomainSearchSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddDomainSearchSheet.swift; sourceTree = "<group>"; };
+		FEC286E12F4362DD00669842 /* AppErrors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppErrors.swift; sourceTree = "<group>"; };
+		FEC286E22F4362DD00669842 /* ConfigureDNSView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigureDNSView.swift; sourceTree = "<group>"; };
+		FEC286E32F4362DD00669842 /* DomainCardRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DomainCardRow.swift; sourceTree = "<group>"; };
+		FEC286E42F4362DD00669842 /* DomainDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DomainDetailView.swift; sourceTree = "<group>"; };
+		FEC286E52F4362DD00669842 /* DomainsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DomainsView.swift; sourceTree = "<group>"; };
+		FEC286E62F4362DD00669842 /* DomainSwitchSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DomainSwitchSheet.swift; sourceTree = "<group>"; };
+		FEC286E72F4362DD00669842 /* SearchSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchSheetView.swift; sourceTree = "<group>"; };
+		FEC286E82F4362DD00669842 /* VerifyAndSignView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerifyAndSignView.swift; sourceTree = "<group>"; };
 		FEC6A5742EF6FB00001C4DFB /* DomaSecure.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DomaSecure.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		FEC6A5BB2EF7B462001C4DFB /* DomainPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DomainPickerView.swift; sourceTree = "<group>"; };
 		FEC6A5BC2EF7B462001C4DFB /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		FEC6A5BD2EF7B462001C4DFB /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		FEC6A5C22EF7B472001C4DFB /* ChatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatsView.swift; sourceTree = "<group>"; };
 		FEC6A5C52EF7B4F0001C4DFB /* ChatDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatDetailView.swift; sourceTree = "<group>"; };
-		FEC6A5CA2EF7B87B001C4DFB /* DomainsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DomainsView.swift; sourceTree = "<group>"; };
-		FEC6A5CC2EF7B8A6001C4DFB /* DomainDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DomainDetailView.swift; sourceTree = "<group>"; };
-		FEC6A5CE2EF7B8DB001C4DFB /* ConfigureDNSView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigureDNSView.swift; sourceTree = "<group>"; };
-		FEC6A5D02EF7B901001C4DFB /* VerifyAndSignView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerifyAndSignView.swift; sourceTree = "<group>"; };
-		FEC6A5D22EF7BBCE001C4DFB /* AddDomainSearchSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddDomainSearchSheet.swift; sourceTree = "<group>"; };
 		FEC6A5D52EF7BD49001C4DFB /* AnalyticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsView.swift; sourceTree = "<group>"; };
 		FEC6A5D72EF7BD6C001C4DFB /* AnalyticsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsCard.swift; sourceTree = "<group>"; };
 		FEC6A5D92EF7BDB4001C4DFB /* AnalyticsDomainRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsDomainRow.swift; sourceTree = "<group>"; };
 		FEC6A5DB2EF7BDDF001C4DFB /* TimeRangePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeRangePicker.swift; sourceTree = "<group>"; };
 		FEC6A5DE2EF7C11F001C4DFB /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
-		FEC6A5EF2EFA7C34001C4DFB /* SearchSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchSheetView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -143,7 +144,6 @@
 				FE662D1B2F0547EA006A68F1 /* ReownAppKit in Frameworks */,
 				FE662D672F07D964006A68F1 /* Web3PromiseKit in Frameworks */,
 				FE4A7C802F41C72700BC049D /* XMTPiOS in Frameworks */,
-
 				FE662D212F0547EA006A68F1 /* ReownWalletKit in Frameworks */,
 				FE662D272F0547EA006A68F1 /* WalletConnectNotify in Frameworks */,
 				FE662D1D2F0547EA006A68F1 /* ReownAppKitUI in Frameworks */,
@@ -163,12 +163,36 @@
 			path = API;
 			sourceTree = "<group>";
 		};
+		FE0AE6F32F432599005B7511 /* Groups */ = {
+			isa = PBXGroup;
+			children = (
+				FE0AE6F22F432599005B7511 /* GroupChatView.swift */,
+			);
+			path = Groups;
+			sourceTree = "<group>";
+		};
 		FE2A3A002F39A9D900C3BEC9 /* Messaging */ = {
 			isa = PBXGroup;
 			children = (
 				FE2A3A012F39A9EE00C3BEC9 /* XmtpService.swift */,
 			);
 			path = Messaging;
+			sourceTree = "<group>";
+		};
+		FEC286E92F4362DD00669842 /* Domains */ = {
+			isa = PBXGroup;
+			children = (
+				FEC286E02F4362DD00669842 /* AddDomainSearchSheet.swift */,
+				FEC286E12F4362DD00669842 /* AppErrors.swift */,
+				FEC286E22F4362DD00669842 /* ConfigureDNSView.swift */,
+				FEC286E32F4362DD00669842 /* DomainCardRow.swift */,
+				FEC286E42F4362DD00669842 /* DomainDetailView.swift */,
+				FEC286E52F4362DD00669842 /* DomainsView.swift */,
+				FEC286E62F4362DD00669842 /* DomainSwitchSheet.swift */,
+				FEC286E72F4362DD00669842 /* SearchSheetView.swift */,
+				FEC286E82F4362DD00669842 /* VerifyAndSignView.swift */,
+			);
+			path = Domains;
 			sourceTree = "<group>";
 		};
 		FEC6A56B2EF6FB00001C4DFB = {
@@ -195,13 +219,14 @@
 		FEC6A5BE2EF7B462001C4DFB /* Features */ = {
 			isa = PBXGroup;
 			children = (
+				FEC286E92F4362DD00669842 /* Domains */,
 				FEC6A5DD2EF7C10F001C4DFB /* Settings */,
 				FEC6A5D42EF7BD31001C4DFB /* Analytics */,
-				FEC6A5C92EF7B860001C4DFB /* Domains */,
 				FEC6A5C42EF7B495001C4DFB /* Chats */,
 				FEC6A5BB2EF7B462001C4DFB /* DomainPickerView.swift */,
 				FEC6A5BC2EF7B462001C4DFB /* MainTabView.swift */,
 				FEC6A5BD2EF7B462001C4DFB /* OnboardingView.swift */,
+				FE0AE6F32F432599005B7511 /* Groups */,
 			);
 			path = Features;
 			sourceTree = "<group>";
@@ -213,22 +238,6 @@
 				FEC6A5C22EF7B472001C4DFB /* ChatsView.swift */,
 			);
 			path = Chats;
-			sourceTree = "<group>";
-		};
-		FEC6A5C92EF7B860001C4DFB /* Domains */ = {
-			isa = PBXGroup;
-			children = (
-				FE662D0D2EFEAF55006A68F1 /* DomainSwitchSheet.swift */,
-				FE662D0B2EFEAF34006A68F1 /* DomainCardRow.swift */,
-				FEC6A5EF2EFA7C34001C4DFB /* SearchSheetView.swift */,
-				FEC6A5D22EF7BBCE001C4DFB /* AddDomainSearchSheet.swift */,
-				FEC6A5D02EF7B901001C4DFB /* VerifyAndSignView.swift */,
-				FEC6A5CE2EF7B8DB001C4DFB /* ConfigureDNSView.swift */,
-				FEC6A5CC2EF7B8A6001C4DFB /* DomainDetailView.swift */,
-				FEC6A5CA2EF7B87B001C4DFB /* DomainsView.swift */,
-				FE55D23A2F39FCA60094834A /* AppErrors.swift */,
-			);
-			path = Domains;
 			sourceTree = "<group>";
 		};
 		FEC6A5D42EF7BD31001C4DFB /* Analytics */ = {
@@ -312,7 +321,6 @@
 				FE662D622F07D964006A68F1 /* Web3 */,
 				FE662D642F07D964006A68F1 /* Web3ContractABI */,
 				FE662D662F07D964006A68F1 /* Web3PromiseKit */,
-
 				FE4A7C7F2F41C72700BC049D /* XMTPiOS */,
 			);
 			productName = DomaSecure;
@@ -378,34 +386,35 @@
 				FE662D482F07D100006A68F1 /* DefaultCryptoProvider.swift in Sources */,
 				FE662D382F079327006A68F1 /* Env.swift in Sources */,
 				FE03CC762EFD095500ABF095 /* DomaAPI.swift in Sources */,
-				FEC6A5CF2EF7B8EC001C4DFB /* ConfigureDNSView.swift in Sources */,
 				FE662D442F07CEFF006A68F1 /* AppBootStrap.swift in Sources */,
 				FE662D6B2F0BE2F5006A68F1 /* ComponentLibraryView.swift in Sources */,
 				FEC6A5D62EF7BD53001C4DFB /* AnalyticsView.swift in Sources */,
 				FEC6A5C32EF7B480001C4DFB /* ChatsView.swift in Sources */,
 				FE03CC722EFD08B700ABF095 /* APIClient.swift in Sources */,
 				FEC6A5DF2EF7C128001C4DFB /* SettingsView.swift in Sources */,
+				FE0AE6F42F432599005B7511 /* GroupChatView.swift in Sources */,
 				FEC6A5C62EF7B4FB001C4DFB /* ChatDetailView.swift in Sources */,
+				FEC286EA2F4362DD00669842 /* DomainsView.swift in Sources */,
+				FEC286EB2F4362DD00669842 /* AppErrors.swift in Sources */,
+				FEC286EC2F4362DD00669842 /* DomainDetailView.swift in Sources */,
+				FEC286ED2F4362DD00669842 /* VerifyAndSignView.swift in Sources */,
+				FEC286EE2F4362DD00669842 /* ConfigureDNSView.swift in Sources */,
+				FEC286EF2F4362DD00669842 /* SearchSheetView.swift in Sources */,
+				FEC286F02F4362DD00669842 /* DomainCardRow.swift in Sources */,
+				FEC286F12F4362DD00669842 /* AddDomainSearchSheet.swift in Sources */,
+				FEC286F22F4362DD00669842 /* DomainSwitchSheet.swift in Sources */,
 				FE662D692F0BDE64006A68F1 /* ContentView.swift in Sources */,
-				FE662D0C2EFEAF44006A68F1 /* DomainCardRow.swift in Sources */,
-				FE662D0E2EFEAF64006A68F1 /* DomainSwitchSheet.swift in Sources */,
 				FE662D4A2F07D266006A68F1 /* AppViewModal.swift in Sources */,
 				FE662D3C2F07A04C006A68F1 /* DynamicAuthWebView.swift in Sources */,
 				FEC6A5BF2EF7B462001C4DFB /* DomainPickerView.swift in Sources */,
-				FEC6A5CB2EF7B885001C4DFB /* DomainsView.swift in Sources */,
 				FEC6A5C02EF7B462001C4DFB /* MainTabView.swift in Sources */,
 				FEC6A5D82EF7BD7A001C4DFB /* AnalyticsCard.swift in Sources */,
-				FEC6A5F02EFA7C43001C4DFB /* SearchSheetView.swift in Sources */,
-				FE55D23B2F39FCA60094834A /* AppErrors.swift in Sources */,
 				FEC6A5DC2EF7BDF4001C4DFB /* TimeRangePicker.swift in Sources */,
 				FEC6A5C12EF7B462001C4DFB /* OnboardingView.swift in Sources */,
 				FE662D3A2F079377006A68F1 /* DynamicManager.swift in Sources */,
-				FEC6A5D32EF7BBE8001C4DFB /* AddDomainSearchSheet.swift in Sources */,
 				FE662D402F07A5D4006A68F1 /* SafariView.swift in Sources */,
 				FE662D462F07D088006A68F1 /* WCSocketFactory.swift in Sources */,
 				FEC6A5DA2EF7BDC6001C4DFB /* AnalyticsDomainRow.swift in Sources */,
-				FEC6A5D12EF7B918001C4DFB /* VerifyAndSignView.swift in Sources */,
-				FEC6A5CD2EF7B8BC001C4DFB /* DomainDetailView.swift in Sources */,
 				FE2A3A022F39AA0400C3BEC9 /* XmtpService.swift in Sources */,
 				FE03CC742EFD092F00ABF095 /* DTOs.swift in Sources */,
 			);
@@ -668,7 +677,6 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-
 		FE4A7C7F2F41C72700BC049D /* XMTPiOS */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = FE4A7C7C2F41C72700BC049D /* XCRemoteSwiftPackageReference "xmtp-ios" */;

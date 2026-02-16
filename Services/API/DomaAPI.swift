@@ -146,10 +146,14 @@ final class DomaAPI {
 
     /// Fetch group conversation members (optional helper)
     func getGroupConversationMembers(conversationId: String) async throws -> [String] {
-        try await APIClient.shared.request(
+        struct MemberResponse: Decodable {
+            let members: String
+        }
+        let response: [MemberResponse] = try await APIClient.shared.request(
             "domains/group-conversations/members",
             query: ["conversationId": conversationId]
         )
+        return response.map { $0.members }
     }
 
     /// Send a text message in a conversation

@@ -421,31 +421,25 @@ final class XmtpService: ObservableObject {
     // ... (private helpers) ...
 
     /// Helper to match Web SDK's `createGroupWithIdentifiers` behavior
+    /// Uses PublicIdentity (Ethereum addresses) — the SDK handles inboxId resolution internally.
     private func createGroupWithIdentifiers(addresses: [String], name: String) async throws -> String {
         #if canImport(XMTPiOS)
         guard let client else { throw XmtpServiceError.notConnected }
         
-        // Resolve addresses to InboxIds (workaround for iOS SDK limitation)
-        var inboxIds: [String] = []
-        for address in addresses {
-            if let resolvedId = await resolveTargetInboxId(address: address) {
-                // Strip 0x if present
-                let cleanId = resolvedId.hasPrefix("0x") ? String(resolvedId.dropFirst(2)) : resolvedId
-                inboxIds.append(cleanId)
-            } else {
-                print("DEBUG: Could not resolve InboxID for \(address). Skipping.")
-            }
+        // Match web SDK: createGroupWithIdentifiers(memberIdentifiers, { groupName, groupDescription })
+        let identities = addresses.map { addr in
+            PublicIdentity(kind: .ethereum, identifier: addr)
         }
         
-        guard !inboxIds.isEmpty else {
-            throw XmtpServiceError.generic("Could not resolve any valid InboxIDs for new group.")
-        }
+        print("DEBUG: Creating group with \(identities.count) identities, name: \(name)")
         
-        // Create Group
-        let group = try await client.conversations.newGroup(with: inboxIds)
-        try await group.updateName(name: name)
+        let group = try await client.conversations.newGroupWithIdentities(
+            with: identities,
+            name: name,
+            description: "Group created by Doma"
+        )
+        
         try await group.sync()
-        
         return group.id
         #else
         throw XmtpServiceError.generic("XMTP SDK not integrated.")
@@ -458,25 +452,55 @@ final class XmtpService: ObservableObject {
         guard let client else { throw XmtpServiceError.notConnected }
         
         // 1. Resolve addresses for all members
+        print("DEBUG: Creating group '\(groupName)' with members: \(memberDomains)")
         var resolvedAddresses: [String] = []
         
-        // 2. Create XMTP Group
-        let group = try await client.conversations.newGroup(with: resolvedAddresses)
-        // try await group.updateGroupName(groupName) // API not available
-        try await group.sync()
-        
-        // 3. Sync to Backend for ALL participants (Owner + Members)
-        let allDomains = [ownerDomain] + memberDomains
-        
-        for domain in allDomains {
-            try? await DomaAPI.shared.upsertDomainGroupConversation(
-                domain: domain,
-                conversationId: group.id,
-                groupName: groupName
-            )
+        for domain in memberDomains {
+            do {
+                let res = try await DomaAPI.shared.getOwnerByDomain(domain: domain)
+                if let addr = res.owner {
+                    resolvedAddresses.append(addr)
+                } else {
+                    print("DEBUG: Could not resolve owner address for domain: \(domain)")
+                }
+            } catch {
+                print("DEBUG: Error resolving domain \(domain): \(error)")
+            }
         }
         
-        return group.id
+        guard !resolvedAddresses.isEmpty else {
+            throw XmtpServiceError.generic("No valid member addresses found to create group.")
+        }
+        
+        // 2. Create XMTP Group (using internal helper that handles InboxID logic)
+        // Note: The helper expects *new* members. The creator is implicitly included.
+        let groupId = try await self.createGroupWithIdentifiers(addresses: resolvedAddresses, name: groupName)
+        
+        print("DEBUG: Group created. ID: \(groupId)")
+
+        // 3. Sync to Backend for ALL participants (Owner + Members)
+        // This ensures the group shows up in everyone's sidebar immediately (if they refresh)
+        let allDomains = [ownerDomain] + memberDomains
+        
+        // Using TaskGroup to parallelize backend syncs
+        await withTaskGroup(of: Void.self) { group in
+            for domain in allDomains {
+                group.addTask {
+                    do {
+                        try await DomaAPI.shared.upsertDomainGroupConversation(
+                            domain: domain,
+                            conversationId: groupId,
+                            groupName: groupName
+                        )
+                        print("DEBUG: Synced group for \(domain)")
+                    } catch {
+                        print("DEBUG: Failed to sync group for \(domain): \(error)")
+                    }
+                }
+            }
+        }
+        
+        return groupId
         #else
         throw XmtpServiceError.generic("XMTP SDK not integrated.")
         #endif
@@ -488,38 +512,26 @@ final class XmtpService: ObservableObject {
         guard let client else { throw XmtpServiceError.notConnected }
         
         // 1. Get Group
-        guard let group = try await client.conversations.findGroup(groupId: groupId) else {
+        guard let group = try client.conversations.findGroup(groupId: groupId) else {
             throw XmtpServiceError.generic("Group not found")
         }
         
-        // 2. Resolve new member inboxId
-        // Try to get inboxId via SDK resolution (strict address->inboxId flow)
-        var targetInboxId: String?
-        
-        // Use getOwnerByDomain (address) + SDK resolution
+        // 2. Resolve new member address
         let ownerRes = try await DomaAPI.shared.getOwnerByDomain(domain: newMemberDomain)
-        if let address = ownerRes.owner {
-            targetInboxId = await resolveTargetInboxId(address: address)
+        guard let address = ownerRes.owner else {
+            throw XmtpServiceError.generic("Could not resolve address for \(newMemberDomain)")
         }
         
-        // Removed lookupDomain fallback to ensure strict web parity and fresh ID resolution
-
-        guard let validId = targetInboxId else {
-            throw XmtpServiceError.generic("Could not resolve valid InboxID for \(newMemberDomain)")
-        }
-        
-        // 3. Add to XMTP Group using inboxIds
-        var cleanInboxId = validId
-        if cleanInboxId.hasPrefix("0x") { cleanInboxId = String(cleanInboxId.dropFirst(2)) }
-        try await group.addMembers(inboxIds: [cleanInboxId])
+        // 3. Add to XMTP Group using identity (matches web: conversation.addMembers([inboxId]))
+        let identity = PublicIdentity(kind: .ethereum, identifier: address)
+        try await group.addMembersByIdentity(identities: [identity])
         try await group.sync()
         
         // 4. Sync Backend for the new member
-        let groupName: String? = nil
         try await DomaAPI.shared.upsertDomainGroupConversation(
             domain: newMemberDomain,
             conversationId: group.id,
-            groupName: groupName ?? "Group"
+            groupName: "Group"
         )
         print("DEBUG: Added \(newMemberDomain) to group \(groupId)")
         #else

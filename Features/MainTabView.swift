@@ -16,6 +16,12 @@ struct MainTabView: View {
                     Text("Chats")
                 }
 
+            GroupChatView()
+                .tabItem {
+                    Image(systemName: "person.3")
+                    Text("Groups")
+                }
+
 
             DomainsView()
                 .tabItem {
