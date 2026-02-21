@@ -1,16 +1,10 @@
 import Foundation
 import Combine
-// MARK: - ⚠️ TEMPORARY: WalletConnect imports commented out for hardcoded address testing
-// import ReownAppKit
-// import WalletConnectSign
+import ReownAppKit
+import WalletConnectSign
 
 final class DynamicManager: ObservableObject {
-    // MARK: - ⚠️ HARDCODED ADDRESS FOR TESTING
-    // Private Key: 0x2031425270c7beae98d3eea625cf0db21b191eb763d871f3512503d7d05c5198
-    // Corresponding Public Address: 0x1A2b3C4D5E6F7G8H9I0J1K2L3M4N5O6P7Q8R9S0T (Placeholder - Please replace if exact match needed)
-    // Actually, I will use a known generated pair for consistency:
-    // Private: b8fe5146c4c021697ecd6f69d5f177642a6f3d6d467f275e9bb0911ffccbed59
-    // Address: 0xF415aA099aFA6ED7aa58c804eA658440585bEe6d
+    // MARK: - ⚠️ HARDCODED ADDRESS (Active for dev/testing — comment out for production WalletConnect flow)
     static let hardcodedPrivateKey = "0xb8fe5146c4c021697ecd6f69d5f177642a6f3d6d467f275e9bb0911ffccbed59"
     private static let hardcodedAddress = "0xF415aA099aFA6ED7aa58c804eA658440585bEe6d"
     
@@ -22,12 +16,11 @@ final class DynamicManager: ObservableObject {
     private var bag = Set<AnyCancellable>()
 
     init() {
-        // MARK: - ⚠️ TEMPORARY: Auto-connect with hardcoded address on init
-        print("[DynamicManager] Initialized with HARDCODED address mode")
+        // ✅ DEV MODE: Use hardcoded address directly
         self.walletAddress = Self.hardcodedAddress
-        print("[DynamicManager] Auto-connected with address: \(Self.hardcodedAddress)")
-        
-        /* ORIGINAL WALLETCONNECT CODE - COMMENTED OUT FOR TESTING
+        print("[DynamicManager] Using hardcoded wallet address: \(Self.hardcodedAddress)")
+
+        // --- WalletConnect listeners (kept for production) ---
         // ✅ Listen to session settle events - this fires when wallet connection succeeds
         AppKit.instance.sessionSettlePublisher
             .receive(on: DispatchQueue.main)
@@ -67,7 +60,6 @@ final class DynamicManager: ObservableObject {
                 switch response.result {
                 case .response(let value):
                     print("[DynamicManager] Session response received: \(value)")
-                    // If we get a valid address from RPC response and don't have one yet
                     if self.walletAddress == nil {
                         let s = value.stringRepresentation
                         if let addr = Self.firstEthereumAddress(in: s) {
@@ -96,14 +88,12 @@ final class DynamicManager: ObservableObject {
             }
             .store(in: &bag)
 
-        // ✅ Recover existing sessions on init
-        recoverExistingSessions()
+        // ✅ Recover existing sessions on init (for production WalletConnect flow)
+        // recoverExistingSessions()  // Commented out — using hardcoded address instead
 
         print("[DynamicManager] Initialized")
-        */ // END ORIGINAL WALLETCONNECT CODE
     }
 
-    /* ORIGINAL WALLETCONNECT CODE - COMMENTED OUT FOR TESTING
     /// Recover any existing sessions from previous app launches
     private func recoverExistingSessions() {
         let sessions = AppKit.instance.getSessions()
@@ -115,22 +105,8 @@ final class DynamicManager: ObservableObject {
             self.walletAddress = addr
         }
     }
-    */ // END ORIGINAL WALLETCONNECT CODE
 
     func connectWallet() {
-        // MARK: - ⚠️ TEMPORARY: Skip wallet connection, use hardcoded address
-        print("[DynamicManager] connectWallet called - using HARDCODED address")
-        isConnecting = true
-        errorMessage = nil
-        
-        // Simulate a brief delay then set the hardcoded address
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
-            self?.walletAddress = Self.hardcodedAddress
-            self?.isConnecting = false
-            print("[DynamicManager] Connected with hardcoded address: \(Self.hardcodedAddress)")
-        }
-        
-        /* ORIGINAL WALLETCONNECT CODE - COMMENTED OUT FOR TESTING
         print("[DynamicManager] connectWallet called. isReady: \(isReady), isConnecting: \(isConnecting)")
         guard isReady, !isConnecting else {
             print("[DynamicManager] connectWallet blocked: Not ready or already connecting.")
@@ -146,9 +122,6 @@ final class DynamicManager: ObservableObject {
                 try await AppKit.present()
                 // If we reach here, the modal was closed.
                 // If we didn't get a session (walletAddress is nil), reset isConnecting.
-                // If we DID get a session, the publisher would have already handled it (or will handle it shortly),
-                // but setting isConnecting = false here is also safe as a backup for "modal closed".
-                // Ideally, we want to allow the user to try again if they closed it.
                 if self.walletAddress == nil {
                      print("[DynamicManager] Modal closed without connection. Resetting state.")
                      self.isConnecting = false
@@ -159,16 +132,10 @@ final class DynamicManager: ObservableObject {
                 self.isConnecting = false
             }
         }
-        */ // END ORIGINAL WALLETCONNECT CODE
     }
 
     /// Disconnect all active sessions
     func disconnect() {
-        // MARK: - ⚠️ TEMPORARY: Disconnect disabled for hardcoded mode
-        print("[DynamicManager] disconnect called - disabled in hardcoded mode")
-        // Don't actually disconnect in hardcoded mode
-        
-        /* ORIGINAL WALLETCONNECT CODE - COMMENTED OUT FOR TESTING
         Task {
             for session in AppKit.instance.getSessions() {
                 try? await AppKit.instance.disconnect(topic: session.topic)
@@ -178,10 +145,8 @@ final class DynamicManager: ObservableObject {
                 self.isConnecting = false
             }
         }
-        */ // END ORIGINAL WALLETCONNECT CODE
     }
 
-    /* ORIGINAL WALLETCONNECT CODE - COMMENTED OUT FOR TESTING
     // MARK: - Address Extraction
 
     /// Extract the first EVM address from a WalletConnect session
@@ -209,5 +174,4 @@ final class DynamicManager: ObservableObject {
               let swiftRange = Range(m.range, in: text) else { return nil }
         return String(text[swiftRange])
     }
-    */ // END ORIGINAL WALLETCONNECT CODE
 }

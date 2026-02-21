@@ -107,13 +107,14 @@ struct ChatDetailView: View {
 
     private func openIfNeeded(force: Bool = false) async {
         if !force, xmtpService.activeConversationId == conversation.id { return }
+        print("[ChatDetail] Opening conversation: \(conversation.id), domain: \(conversation.domain)")
         await MainActor.run { isLoading = true; errorMessage = nil }
         do {
-            // Use correct join method for existing conversation ID (Group ID)
-            // matching web's joinConversation(conv.id)
             try await xmtpService.joinConversation(groupId: conversation.id)
+            print("[ChatDetail] ✅ Successfully joined conversation: \(conversation.id)")
             await MainActor.run { isLoading = false }
         } catch {
+            print("[ChatDetail] ❌ Failed to open conversation: \(error)")
             await MainActor.run {
                 isLoading = false
                 errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
@@ -124,10 +125,14 @@ struct ChatDetailView: View {
     private func sendMessage() async {
         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
+        print("[ChatDetail] Sending message: '\(text)' to conversation: \(conversation.id)")
+        print("[ChatDetail] XMTP ready: \(xmtpService.isReady), activeConvoId: \(xmtpService.activeConversationId ?? "nil"), useMock: \(xmtpService.useMock)")
         do {
             try await xmtpService.send(text: text)
+            print("[ChatDetail] ✅ Message sent successfully")
             await MainActor.run { inputText = "" }
         } catch {
+            print("[ChatDetail] ❌ Failed to send message: \(error)")
             await MainActor.run {
                 errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
             }

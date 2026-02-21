@@ -141,6 +141,7 @@ struct SearchSheetView: View {
             let newConversation = ConversationItem(
                 id: conversationId,
                 domain: trimmed,
+                name: nil,
                 status: "active",
                 lastActivity: ISO8601DateFormatter().string(from: Date()),
                 createdAt: ISO8601DateFormatter().string(from: Date()),

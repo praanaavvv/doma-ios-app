@@ -40,7 +40,7 @@ final class DomaAPI {
         struct Policy: Encodable { let consentMode: String; let feeMode: String }
         struct Body: Encodable { let domain: String; let owner: String; let messagingEnabled: Bool; let policy: Policy }
         let body = Body(domain: domain.lowercased(), owner: owner.lowercased(), messagingEnabled: messagingEnabled, policy: .init(consentMode: consentMode, feeMode: feeMode))
-        let _: EmptyResponse = try await APIClient.shared.request(
+        try await APIClient.shared.requestVoid(
             "domains/messaging/onboard",
             method: "POST",
             body: body
@@ -71,6 +71,53 @@ final class DomaAPI {
         try await APIClient.shared.request(
             "domains/lookup",
             query: ["domain": domain.lowercased()]
+        )
+    }
+
+    // MARK: - Profile & Wallet Sync
+
+    struct WalletDataResponse: Decodable {
+        let status: String
+        let wallet: String?
+        let name: String?
+        let domains: [String]?
+    }
+
+    struct SetupProfileResponse: Decodable {
+        let status: String
+        let wallet: String
+        let name: String
+        let domains: [String]
+    }
+    
+    /// Check if profile exists (returns status: "not set" or "ok")
+    func fetchWalletData(wallet: String) async throws -> WalletDataResponse {
+        try await APIClient.shared.request(
+            "domains/wallet-data",
+            query: ["wallet": wallet]
+        )
+    }
+
+    /// Create/Update profile name and sync domains
+    func setupProfile(wallet: String, name: String) async throws -> SetupProfileResponse {
+        struct Body: Encodable {
+            let wallet: String
+            let name: String
+        }
+        return try await APIClient.shared.request(
+            "domains/setup-profile",
+            method: "POST",
+            body: Body(wallet: wallet, name: name)
+        )
+    }
+
+    /// Sync domains for a wallet (e.g. if purchase happens outside app)
+    func syncWallet(wallet: String) async throws -> SetupProfileResponse {
+        struct Body: Encodable { let wallet: String }
+        return try await APIClient.shared.request(
+            "domains/sync-wallet",
+            method: "POST",
+            body: Body(wallet: wallet)
         )
     }
 
@@ -123,13 +170,14 @@ final class DomaAPI {
         let res: ConversationsResponse = try await APIClient.shared.request(
             "domains/\(domain)/conversations"
         )
+        print("DEBUG: Conversations for \(domain): \(res.conversations)")
         return res.conversations
     }
 
-    /// Upsert a domain group conversation (optional helper)
+    /// Upsert a domain group conversation — called once per member domain
     func upsertDomainGroupConversation(domain: String, conversationId: String, groupName: String? = nil) async throws {
         struct Body: Encodable { let domain: String; let conversationId: String; let groupName: String? }
-        let _: EmptyResponse = try await APIClient.shared.request(
+        try await APIClient.shared.requestVoid(
             "domains/group-conversations",
             method: "POST",
             body: Body(domain: domain, conversationId: conversationId, groupName: groupName)
@@ -144,16 +192,12 @@ final class DomaAPI {
         )
     }
 
-    /// Fetch group conversation members (optional helper)
-    func getGroupConversationMembers(conversationId: String) async throws -> [String] {
-        struct MemberResponse: Decodable {
-            let members: String
-        }
-        let response: [MemberResponse] = try await APIClient.shared.request(
+    /// Fetch group conversation members — returns [{domain, wallet, name}]
+    func getGroupConversationMembers(conversationId: String) async throws -> [GroupMember] {
+        try await APIClient.shared.request(
             "domains/group-conversations/members",
             query: ["conversationId": conversationId]
         )
-        return response.map { $0.members }
     }
 
     /// Send a text message in a conversation

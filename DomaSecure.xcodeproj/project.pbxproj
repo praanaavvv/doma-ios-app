@@ -24,6 +24,7 @@
 		FE662D2B2F054819006A68F1 /* WalletConnectIdentity in Frameworks */ = {isa = PBXBuildFile; productRef = FE662D2A2F054819006A68F1 /* WalletConnectIdentity */; };
 		FE662D382F079327006A68F1 /* Env.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE662D372F07931E006A68F1 /* Env.swift */; };
 		FE662D3A2F079377006A68F1 /* DynamicManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE662D392F079370006A68F1 /* DynamicManager.swift */; };
+		BB000001CCDD000100000001 /* WalletConnectXMTPSigner.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000001CCDD000100000002 /* WalletConnectXMTPSigner.swift */; };
 		FE662D3C2F07A04C006A68F1 /* DynamicAuthWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE662D3B2F07A042006A68F1 /* DynamicAuthWebView.swift */; };
 		FE662D402F07A5D4006A68F1 /* SafariView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE662D3F2F07A5CD006A68F1 /* SafariView.swift */; };
 		FE662D422F07C63B006A68F1 /* DynamicAuthSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE662D412F07C630006A68F1 /* DynamicAuthSession.swift */; };
@@ -55,6 +56,7 @@
 		FEC6A5DA2EF7BDC6001C4DFB /* AnalyticsDomainRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEC6A5D92EF7BDB4001C4DFB /* AnalyticsDomainRow.swift */; };
 		FEC6A5DC2EF7BDF4001C4DFB /* TimeRangePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEC6A5DB2EF7BDDF001C4DFB /* TimeRangePicker.swift */; };
 		FEC6A5DF2EF7C128001C4DFB /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEC6A5DE2EF7C11F001C4DFB /* SettingsView.swift */; };
+		AA000001AABB000100000001 /* AppearanceSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000001AABB000100000002 /* AppearanceSettingsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -66,6 +68,7 @@
 		FE662D352F078C1F006A68F1 /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
 		FE662D372F07931E006A68F1 /* Env.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Env.swift; sourceTree = "<group>"; };
 		FE662D392F079370006A68F1 /* DynamicManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DynamicManager.swift; sourceTree = "<group>"; };
+		BB000001CCDD000100000002 /* WalletConnectXMTPSigner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletConnectXMTPSigner.swift; sourceTree = "<group>"; };
 		FE662D3B2F07A042006A68F1 /* DynamicAuthWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DynamicAuthWebView.swift; sourceTree = "<group>"; };
 		FE662D3F2F07A5CD006A68F1 /* SafariView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariView.swift; sourceTree = "<group>"; };
 		FE662D412F07C630006A68F1 /* DynamicAuthSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DynamicAuthSession.swift; sourceTree = "<group>"; };
@@ -95,6 +98,7 @@
 		FEC6A5D92EF7BDB4001C4DFB /* AnalyticsDomainRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsDomainRow.swift; sourceTree = "<group>"; };
 		FEC6A5DB2EF7BDDF001C4DFB /* TimeRangePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeRangePicker.swift; sourceTree = "<group>"; };
 		FEC6A5DE2EF7C11F001C4DFB /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		AA000001AABB000100000002 /* AppearanceSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppearanceSettingsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -255,6 +259,7 @@
 			isa = PBXGroup;
 			children = (
 				FEC6A5DE2EF7C11F001C4DFB /* SettingsView.swift */,
+				AA000001AABB000100000002 /* AppearanceSettingsView.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -283,6 +288,7 @@
 				FE662D3F2F07A5CD006A68F1 /* SafariView.swift */,
 				FE662D3B2F07A042006A68F1 /* DynamicAuthWebView.swift */,
 				FE662D392F079370006A68F1 /* DynamicManager.swift */,
+				BB000001CCDD000100000002 /* WalletConnectXMTPSigner.swift */,
 			);
 			path = WalletConnect;
 			sourceTree = "<group>";
@@ -392,6 +398,7 @@
 				FEC6A5C32EF7B480001C4DFB /* ChatsView.swift in Sources */,
 				FE03CC722EFD08B700ABF095 /* APIClient.swift in Sources */,
 				FEC6A5DF2EF7C128001C4DFB /* SettingsView.swift in Sources */,
+				AA000001AABB000100000001 /* AppearanceSettingsView.swift in Sources */,
 				FE0AE6F42F432599005B7511 /* GroupChatView.swift in Sources */,
 				FEC6A5C62EF7B4FB001C4DFB /* ChatDetailView.swift in Sources */,
 				FEC286EA2F4362DD00669842 /* DomainsView.swift in Sources */,
@@ -412,6 +419,7 @@
 				FEC6A5DC2EF7BDF4001C4DFB /* TimeRangePicker.swift in Sources */,
 				FEC6A5C12EF7B462001C4DFB /* OnboardingView.swift in Sources */,
 				FE662D3A2F079377006A68F1 /* DynamicManager.swift in Sources */,
+				BB000001CCDD000100000001 /* WalletConnectXMTPSigner.swift in Sources */,
 				FE662D402F07A5D4006A68F1 /* SafariView.swift in Sources */,
 				FE662D462F07D088006A68F1 /* WCSocketFactory.swift in Sources */,
 				FEC6A5DA2EF7BDC6001C4DFB /* AnalyticsDomainRow.swift in Sources */,

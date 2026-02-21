@@ -335,6 +335,7 @@ class GroupChatViewModel: ObservableObject {
     @Published var selectedMembers: [String] = []
     @Published var memberStatus: MemberStatus = .idle
     @Published var isCreating: Bool = false
+    @Published var createError: String?
     
     enum MemberStatus {
         case idle, checking, valid, invalid
@@ -403,19 +404,27 @@ class GroupChatViewModel: ObservableObject {
     func createGroup(xmtpService: XmtpService) async {
         guard !newGroupName.isEmpty, !selectedMembers.isEmpty else { return }
         isCreating = true
+        createError = nil
         defer { isCreating = false }
         
         do {
-            _ = try await xmtpService.createGroup(
+            let result = try await xmtpService.createGroup(
                 ownerDomain: selectedDomain,
                 groupName: newGroupName,
                 memberDomains: selectedMembers
             )
             
+            // Show warning if some members failed to sync (e.g. profile not set)
+            if !result.failedDomains.isEmpty {
+                let failed = result.failedDomains.joined(separator: ", ")
+                createError = "Group created, but failed to add: \(failed). They may need to set up their profile first."
+            }
+            
             newGroupName = ""
             selectedMembers = []
             await refreshConversations()
         } catch {
+            createError = "Failed to create group: \(error.localizedDescription)"
             print("Failed to create group: \(error)")
         }
     }
@@ -429,7 +438,7 @@ struct GroupDetailView: View {
     @EnvironmentObject var xmtpService: XmtpService
     
     @State private var inputText: String = ""
-    @State private var currentMembers: [String] = []
+    @State private var currentMembers: [GroupMember] = []
     @State private var showMemberSheet = false
     
     // Add Member State
@@ -486,14 +495,19 @@ struct GroupDetailView: View {
     private var membersBar: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                ForEach(currentMembers, id: \.self) { member in
+                ForEach(currentMembers) { member in
                     HStack(spacing: 5) {
                         Circle()
                             .fill(Color.green)
                             .frame(width: 6, height: 6)
-                        Text(member)
+                        Text(member.name ?? member.domain)
                             .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(.primary)
+                        if member.name != nil {
+                            Text(member.domain)
+                                .font(.system(size: 11))
+                                .foregroundStyle(.tertiary)
+                        }
                     }
                     .padding(.horizontal, 8)
                     .padding(.vertical, 5)
@@ -634,7 +648,7 @@ struct GroupDetailView: View {
         NavigationStack {
             List {
                 Section("Members") {
-                    ForEach(currentMembers, id: \.self) { member in
+                    ForEach(currentMembers) { member in
                         HStack(spacing: 12) {
                             Circle()
                                 .fill(LinearGradient(
@@ -644,13 +658,20 @@ struct GroupDetailView: View {
                                 ))
                                 .frame(width: 36, height: 36)
                                 .overlay(
-                                    Text(String(member.prefix(1)).uppercased())
+                                    Text(String((member.name ?? member.domain).prefix(1)).uppercased())
                                         .font(.system(size: 14, weight: .bold))
                                         .foregroundColor(.white)
                                 )
                             
-                            Text(member)
-                                .font(.system(size: 15))
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(member.name ?? member.domain)
+                                    .font(.system(size: 15, weight: .medium))
+                                if member.name != nil {
+                                    Text(member.domain)
+                                        .font(.system(size: 12))
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
                         }
                     }
                 }
@@ -708,8 +729,7 @@ struct GroupDetailView: View {
     
     func fetchMembers() async {
         do {
-            let memberData = try await DomaAPI.shared.getGroupConversationMembers(conversationId: group.conversationId)
-            currentMembers = memberData
+            currentMembers = try await DomaAPI.shared.getGroupConversationMembers(conversationId: group.conversationId)
         } catch {
             print("Error fetching members: \(error)")
         }

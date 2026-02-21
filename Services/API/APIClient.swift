@@ -85,15 +85,77 @@ final class APIClient {
                 throw APIError.badStatus(http.statusCode, msg)
             }
 
+            // Handle 204 No Content or empty body gracefully
+            if data.isEmpty || http.statusCode == 204 {
+                // Try decoding from empty JSON object "{}" as a fallback
+                let fallback = "{}".data(using: .utf8)!
+                do {
+                    return try JSONDecoder().decode(T.self, from: fallback)
+                } catch {
+                    throw APIError.decoding("No response body and type \(T.self) cannot be decoded from empty object.")
+                }
+            }
+
             do {
+                if T.self == [GroupMember].self {
+                    if let rawString = String(data: data, encoding: .utf8) {
+                        print("DEBUG RAW GroupMember JSON: \(rawString)")
+                    }
+                }
                 let decoder = JSONDecoder()
                 decoder.dateDecodingStrategy = .iso8601
                 return try decoder.decode(T.self, from: data)
             } catch {
+                if T.self == [GroupMember].self {
+                    print("DEBUG DECODING ERROR DETAILS: \(error)")
+                }
                 throw APIError.decoding(error.localizedDescription)
             }
+        } catch let apiErr as APIError {
+            throw apiErr
         } catch {
             throw APIError.transport(error.localizedDescription)
+        }
+    }
+
+    /// Fire-and-forget request for endpoints that return no body (e.g. 204)
+    func requestVoid(
+        _ path: String,
+        method: String = "POST",
+        query: [String: String?] = [:],
+        body: Encodable? = nil
+    ) async throws {
+        guard var components = URLComponents(url: baseURL.appendingPathComponent(path), resolvingAgainstBaseURL: false) else {
+            throw APIError.invalidURL
+        }
+
+        let items = query.compactMap { (k, v) -> URLQueryItem? in
+            guard let v, !v.isEmpty else { return nil }
+            return URLQueryItem(name: k, value: v)
+        }
+        if !items.isEmpty { components.queryItems = items }
+
+        guard let url = components.url else { throw APIError.invalidURL }
+
+        var req = URLRequest(url: url)
+        req.httpMethod = method
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        if let body {
+            req.httpBody = try JSONEncoder().encode(AnyEncodable(body))
+        }
+
+        #if DEBUG
+        print("[API] \(method) \(url.absoluteString)")
+        #endif
+
+        let (data, resp) = try await URLSession.shared.data(for: req)
+        guard let http = resp as? HTTPURLResponse else {
+            throw APIError.transport("No HTTP response")
+        }
+        guard (200...299).contains(http.statusCode) else {
+            let msg = String(data: data, encoding: .utf8) ?? "Unknown error"
+            throw APIError.badStatus(http.statusCode, msg)
         }
     }
 }

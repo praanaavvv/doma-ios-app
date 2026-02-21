@@ -33,7 +33,7 @@ struct DomainsView: View {
 
                 Text("My Domains")
                     .font(.system(size: 20, weight: .semibold))
-                    .foregroundColor(Color(hex: "AFAFAF"))
+                    .foregroundColor(.secondary)
 
                 Spacer()
                 
@@ -67,10 +67,10 @@ struct DomainsView: View {
                     Text("Add new domain")
                         .font(.system(size: 15, weight: .medium))
                 }
-                .foregroundColor(.black)
+                .foregroundColor(.primary)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
-                .background(Color(hex: "F3F4F6")) // Very light gray/white
+                .background(Color(.secondarySystemGroupedBackground))
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
             .padding(.horizontal, 20)
@@ -186,13 +186,13 @@ struct DomainRowCard: View {
                     .font(.system(size: 22))
                     .foregroundColor(.gray)
                     .frame(width: 44, height: 44)
-                    .background(Color(.white))
+                    .background(Color(.tertiarySystemGroupedBackground))
                     .clipShape(Circle())
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(domain)
                         .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(Color(hex: "1B1B1B"))
+                        .foregroundColor(.primary)
                         .tracking(-0.56)
 
                     Text(domainIdentifier)
@@ -225,7 +225,7 @@ struct DomainRowCard: View {
             .padding(.horizontal, 16)
             .padding(.bottom, 16)
         }
-        .background(Color(hex: "F9FAFB")) // Light gray background
+        .background(Color(.secondarySystemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         // Removed border stroke
     }

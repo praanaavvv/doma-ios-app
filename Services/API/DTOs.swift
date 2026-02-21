@@ -65,6 +65,7 @@ struct ConversationsListResponse: Decodable {
 struct ConversationItem: Decodable, Identifiable {
     let id: String
     let domain: String
+    let name: String?
     let status: String
     let lastActivity: String?
     let createdAt: String?
@@ -110,6 +111,7 @@ struct Conversation: Decodable, Identifiable {
     let conversationId: String
     let withDomain: String
     let createdAt: String
+    let withName: String?
 }
 
 struct GroupConversation: Decodable, Identifiable {
@@ -123,4 +125,12 @@ struct GroupConversation: Decodable, Identifiable {
         let admin: String?
         let name: String?
     }
+}
+
+/// Member info returned by GET /group-conversations/members
+struct GroupMember: Decodable, Identifiable {
+    var id: String { wallet ?? domain }
+    let domain: String
+    let wallet: String?
+    let name: String?
 }

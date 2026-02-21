@@ -8,6 +8,7 @@
 import Foundation
 import SwiftUI
 import Combine
+import WalletConnectSign
 #if canImport(XMTPiOS)
 import XMTPiOS
 #endif
@@ -78,7 +79,7 @@ final class XmtpService: ObservableObject {
     }
 
     // MARK: - Mock State
-    @Published var useMock: Bool = true // Default to TRUE to avoid race conditions in hardcoded mode
+    @Published var useMock: Bool = false
     private var mockConversations: [String: [ChatMessage]] = [:] // conversationKey -> messages
 
     // MARK: - Public API
@@ -195,6 +196,146 @@ final class XmtpService: ObservableObject {
         #else
         print("DEBUG: [XmtpService] XMTP SDK not available (canImport failed).")
         #endif
+    }
+
+    /// Initialize XMTP using a WalletConnect signer (prompts user in wallet to approve)
+    func initializeWithWalletConnect(address: String, session: WalletConnectSign.Session) async throws {
+        print("DEBUG: [XmtpService] initializeWithWalletConnect called for \(address)")
+
+        #if canImport(XMTPiOS)
+        if client != nil {
+            print("DEBUG: [XmtpService] Client already exists. Returning.")
+            isReady = true
+            useMock = false
+            return
+        }
+
+        isConnecting = true
+        defer { isConnecting = false }
+
+        // 1. One-time migration: clear old XMTP database from hardcoded key mode
+        let migrationKey = "xmtp_migrated_to_wc"
+        if !UserDefaults.standard.bool(forKey: migrationKey) {
+            print("DEBUG: [XmtpService] First WalletConnect init — clearing old hardcoded DB...")
+            UserDefaults.standard.removeObject(forKey: "d_db_key_hardcoded")
+            Self.clearXmtpDatabaseFiles()
+            UserDefaults.standard.set(true, forKey: migrationKey)
+        }
+
+        // 2. Get or create DB encryption key (persisted in UserDefaults)
+        let udKey = "d_db_key_wc_\(address.lowercased())"
+        var dbKey: Data
+        if let stored = UserDefaults.standard.data(forKey: udKey) {
+            dbKey = stored
+            print("DEBUG: [XmtpService] Using stored DB key for \(address)")
+        } else {
+            dbKey = Data.random(length: 32)
+            UserDefaults.standard.set(dbKey, forKey: udKey)
+            print("DEBUG: [XmtpService] Created & stored new DB key for \(address)")
+        }
+
+        // 3. Create signer backed by WalletConnect
+        let signer = WalletConnectXMTPSigner(address: address, session: session)
+
+        // 4. Create XMTP client — this will prompt the user to sign in MetaMask
+        //    If the DB key doesn't match the existing database, we'll catch the
+        //    PRAGMA error, nuke the stale files, generate a fresh key, and retry once.
+        do {
+            self.client = try await Self.createClientWithKeyRecovery(
+                signer: signer,
+                dbKey: &dbKey,
+                dbKeyUDKey: udKey
+            )
+            self.isReady = true
+            self.useMock = false
+            print("DEBUG: [XmtpService] ✅ XMTP client created via WalletConnect")
+        } catch {
+            print("DEBUG: [XmtpService] ❌ Client.create FAILED: \(error)")
+            throw error
+        }
+        #else
+        print("DEBUG: [XmtpService] XMTP SDK not available.")
+        #endif
+    }
+
+    /// Attempts `Client.create`; if it fails with a PRAGMA key mismatch, clears the
+    /// stale database files, generates a fresh encryption key, and retries once.
+    #if canImport(XMTPiOS)
+    private static func createClientWithKeyRecovery(
+        signer: SigningKey,
+        dbKey: inout Data,
+        dbKeyUDKey: String
+    ) async throws -> Client {
+        let options = ClientOptions(
+            api: .init(env: .dev),
+            dbEncryptionKey: dbKey
+        )
+
+        print("DEBUG: [XmtpService] Creating XMTP Client with WalletConnect signer...")
+        do {
+            return try await Client.create(account: signer, options: options)
+        } catch {
+            let errorMsg = String(describing: error)
+            // Detect PRAGMA key / salt mismatch (SQLCipher encrypted DB with wrong key)
+            if errorMsg.contains("PRAGMA key") || errorMsg.contains("incorrect value") || errorMsg.contains("Storage error") {
+                print("DEBUG: [XmtpService] ⚠️ PRAGMA key mismatch — clearing stale DB and retrying...")
+
+                // 1. Delete all XMTP database files
+                clearXmtpDatabaseFiles()
+
+                // 2. Generate a fresh encryption key
+                let freshKey = Data.random(length: 32)
+                dbKey = freshKey
+                UserDefaults.standard.set(freshKey, forKey: dbKeyUDKey)
+                print("DEBUG: [XmtpService] Generated fresh DB key and cleared old database.")
+
+                // 3. Retry with the fresh key
+                let retryOptions = ClientOptions(
+                    api: .init(env: .dev),
+                    dbEncryptionKey: freshKey
+                )
+                return try await Client.create(account: signer, options: retryOptions)
+            }
+            throw error
+        }
+    }
+    #endif
+
+    /// Delete local XMTP database files to resolve key mismatches
+    private static func clearXmtpDatabaseFiles() {
+        let fileManager = FileManager.default
+
+        // XMTP SDK may store DB files in multiple locations
+        var searchDirs: [URL] = []
+        if let appSupport = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first {
+            searchDirs.append(appSupport)
+        }
+        if let documents = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first {
+            searchDirs.append(documents)
+        }
+        if let caches = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first {
+            searchDirs.append(caches)
+        }
+
+        for dir in searchDirs {
+            // Remove `xmtp` subdirectory if it exists
+            let xmtpDir = dir.appendingPathComponent("xmtp")
+            if fileManager.fileExists(atPath: xmtpDir.path) {
+                try? fileManager.removeItem(at: xmtpDir)
+                print("DEBUG: [XmtpService] Deleted XMTP directory: \(xmtpDir.path)")
+            }
+
+            // Remove any files containing "xmtp" or "libxmtp" in their name (e.g. .db3, .sqlite)
+            if let contents = try? fileManager.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil) {
+                for file in contents {
+                    let name = file.lastPathComponent.lowercased()
+                    if name.contains("xmtp") || name.contains("libxmtp") {
+                        try? fileManager.removeItem(at: file)
+                        print("DEBUG: [XmtpService] Deleted: \(file.lastPathComponent)")
+                    }
+                }
+            }
+        }
     }
 
     /// Open (or create) a DM conversation to the given inboxId.
@@ -452,8 +593,9 @@ final class XmtpService: ObservableObject {
         #endif
     }
     
-    /// Create a multi-user group chat and sync to backend for ALL members
-    func createGroup(ownerDomain: String, groupName: String, memberDomains: [String]) async throws -> String {
+    /// Create a multi-user group chat and sync to backend for ALL members.
+    /// Returns (groupId, failedDomains) — failedDomains lists members whose backend sync failed (e.g. profile not set).
+    func createGroup(ownerDomain: String, groupName: String, memberDomains: [String]) async throws -> (groupId: String, failedDomains: [String]) {
         #if canImport(XMTPiOS)
         guard let client else { throw XmtpServiceError.notConnected }
         
@@ -488,8 +630,8 @@ final class XmtpService: ObservableObject {
         // This ensures the group shows up in everyone's sidebar immediately (if they refresh)
         let allDomains = [ownerDomain] + memberDomains
         
-        // Using TaskGroup to parallelize backend syncs
-        await withTaskGroup(of: Void.self) { group in
+        // Collect failures per domain
+        let failedDomains = await withTaskGroup(of: String?.self) { group in
             for domain in allDomains {
                 group.addTask {
                     do {
@@ -499,14 +641,24 @@ final class XmtpService: ObservableObject {
                             groupName: groupName
                         )
                         print("DEBUG: Synced group for \(domain)")
+                        return nil // success
                     } catch {
                         print("DEBUG: Failed to sync group for \(domain): \(error)")
+                        return domain // return the failed domain
                     }
                 }
             }
+            
+            var failures: [String] = []
+            for await result in group {
+                if let failedDomain = result {
+                    failures.append(failedDomain)
+                }
+            }
+            return failures
         }
         
-        return groupId
+        return (groupId: groupId, failedDomains: failedDomains)
         #else
         throw XmtpServiceError.generic("XMTP SDK not integrated.")
         #endif
@@ -565,9 +717,11 @@ final class XmtpService: ObservableObject {
         #if canImport(XMTPiOS)
         guard let client else { throw XmtpServiceError.notConnected }
         
-        // 1. Find existing Group
+        // 1. Sync conversations from network then find group
+        print("DEBUG: [joinConversation] Syncing conversations before findGroup...")
+        try await client.conversations.sync()
         guard let group = try await client.conversations.findGroup(groupId: groupId) else {
-             throw XmtpServiceError.generic("Group not found")
+             throw XmtpServiceError.generic("Group not found (after sync)")
         }
         
         // 2. Setup State
@@ -585,21 +739,29 @@ final class XmtpService: ObservableObject {
         let allMessages = try await group.messages()
         let myInboxId = client.inboxID
         
-        // Build inboxId → domain mapping (matches web's inboxIdToDomain)
-        var inboxIdToDomain: [String: String] = [:]
+        // Build inboxId → display name mapping using member API (returns domain, wallet, name)
+        var inboxIdToName: [String: String] = [:]
         do {
-            let memberDomains = try await DomaAPI.shared.getGroupConversationMembers(conversationId: groupId)
-            for domain in memberDomains {
-                do {
-                    let ownerRes = try await DomaAPI.shared.getOwnerByDomain(domain: domain)
-                    if let address = ownerRes.owner {
-                        let identity = PublicIdentity(kind: .ethereum, identifier: address)
-                        if let inboxId = try await client.inboxIdFromIdentity(identity: identity) {
-                            inboxIdToDomain[inboxId] = domain
-                        }
+            let members = try await DomaAPI.shared.getGroupConversationMembers(conversationId: groupId)
+            for member in members {
+                let address: String
+                if let wallet = member.wallet {
+                    address = wallet
+                } else {
+                    let ownerRes = try await DomaAPI.shared.getOwnerByDomain(domain: member.domain)
+                    address = ownerRes.owner ?? ""
+                }
+                
+                guard !address.isEmpty else { continue }
+                
+                let identity = PublicIdentity(kind: .ethereum, identifier: address)
+                if let inboxId = try await client.inboxIdFromIdentity(identity: identity) {
+                    // Use "name (domain)" format for display, or just domain if name is empty/nil
+                    if let name = member.name, !name.isEmpty {
+                        inboxIdToName[inboxId] = name
+                    } else {
+                        inboxIdToName[inboxId] = member.domain
                     }
-                } catch {
-                    print("DEBUG: Failed to resolve inboxId for \(domain): \(error)")
                 }
             }
         } catch {
@@ -616,7 +778,7 @@ final class XmtpService: ObservableObject {
                 text: content,
                 isMine: msg.senderInboxId == myInboxId,
                 createdAt: msg.sentAt,
-                senderDomain: inboxIdToDomain[msg.senderInboxId]
+                senderDomain: inboxIdToName[msg.senderInboxId]
             )
         }
         .sorted { $0.createdAt < $1.createdAt }
@@ -636,7 +798,7 @@ final class XmtpService: ObservableObject {
                             text: content,
                             isMine: msg.senderInboxId == myInboxId,
                             createdAt: msg.sentAt,
-                            senderDomain: inboxIdToDomain[msg.senderInboxId]
+                            senderDomain: inboxIdToName[msg.senderInboxId]
                         )
                         if !self.messages.contains(where: { $0.id == new.id }) {
                             self.messages.append(new)
