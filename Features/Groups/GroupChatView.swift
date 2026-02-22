@@ -65,6 +65,12 @@ struct GroupChatView: View {
             .onAppear {
                 Task { await viewModel.initialLoad(walletAddress: session.walletAddress) }
             }
+            .onReceive(NotificationCenter.default.publisher(for: .domaReloadGroups)) { _ in
+                Task { await viewModel.refreshConversations() }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .domaNewMessage)) { _ in
+                Task { await viewModel.refreshConversations() }
+            }
         }
     }
     
@@ -436,6 +442,7 @@ struct GroupDetailView: View {
     let group: GroupConversation
     @ObservedObject var viewModel: GroupChatViewModel
     @EnvironmentObject var xmtpService: XmtpService
+    @EnvironmentObject var session: AppSession
     
     @State private var inputText: String = ""
     @State private var currentMembers: [GroupMember] = []
@@ -741,6 +748,10 @@ struct GroupDetailView: View {
         inputText = ""
         do {
             try await xmtpService.send(text: text)
+            
+            // Broadcast message_sent via WebSocket
+            session.webSocket.sendMessageEvent(to: "", conversationId: group.conversationId)
+            
         } catch {
             print("Error sending message: \(error)")
             inputText = text

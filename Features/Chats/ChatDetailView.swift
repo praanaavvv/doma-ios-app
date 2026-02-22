@@ -130,6 +130,10 @@ struct ChatDetailView: View {
         do {
             try await xmtpService.send(text: text)
             print("[ChatDetail] ✅ Message sent successfully")
+            
+            // Broadcast message_sent via WebSocket
+            session.webSocket.sendMessageEvent(to: conversation.domain, conversationId: conversation.id)
+            
             await MainActor.run { inputText = "" }
         } catch {
             print("[ChatDetail] ❌ Failed to send message: \(error)")

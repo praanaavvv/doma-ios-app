@@ -1,51 +1,66 @@
 import SwiftUI
 
 struct AnalyticsView: View {
+    @EnvironmentObject private var session: AppSession
+    
+    @State private var isLoading = false
+    @State private var errorMessage: String?
+    @State private var analytics: DomaAPI.DomainAnalyticsResponse?
+    
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 14) {
+        ScrollView {
+            VStack(spacing: 14) {
+                // Top bar (avatar left, centered title)
+                HStack {
+                    Circle()
+                        .fill(Color.blue.opacity(0.18))
+                        .frame(width: 34, height: 34)
+                        .overlay(Text("🦁"))
 
-                    // Top bar (avatar left, centered title)
-                    HStack {
-                        Circle()
-                            .fill(Color.blue.opacity(0.18))
-                            .frame(width: 34, height: 34)
-                            .overlay(Text("🦁"))
+                    Spacer()
 
-                        Spacer()
+                    Text("Analytics")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(.secondary)
 
-                        Text("Analytics")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundStyle(.secondary)
+                    Spacer()
 
-                        Spacer()
+                    // keep symmetry (invisible)
+                    Circle()
+                        .fill(Color.clear)
+                        .frame(width: 34, height: 34)
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 6)
 
-                        // keep symmetry (invisible)
-                        Circle()
-                            .fill(Color.clear)
-                            .frame(width: 34, height: 34)
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 6)
+                if let domain = session.activeDomain {
+                    Text(domain)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                }
 
-                    // Wallet card
-                    WalletRevenueCard()
-                        .padding(.horizontal, 16)
-
+                if isLoading {
+                    ProgressView("Loading Analytics...")
+                        .padding(.top, 40)
+                } else if let error = errorMessage {
+                    Text(error)
+                        .foregroundColor(.red)
+                        .padding()
+                } else if let data = analytics {
                     // Two small cards row
                     HStack(spacing: 12) {
                         SmallStatCard(
                             icon: "bubble.left.and.bubble.right",
                             title: "Total Messages",
-                            value: "1,248",
-                            pillText: "+12%"
+                            value: "\(data.totalMessages)",
+                            pillText: "\(data.percentChange >= 0 ? "+" : "")\(String(format: "%.1f", data.percentChange))%",
+                            pillIsGreen: data.percentChange >= 0
                         )
 
                         SmallStatCard(
                             icon: "chart.bar",
                             title: "Engagement Rate",
-                            value: "88%",
+                            value: "\(String(format: "%.1f", data.engagementRate))%",
                             pillText: "Last 7 Days",
                             pillIsGreen: false
                         )
@@ -53,62 +68,46 @@ struct AnalyticsView: View {
                     .padding(.horizontal, 16)
 
                     // Heatmap
-                    HeatmapCard()
+                    HeatmapCard(heatmapData: data.heatmap)
                         .padding(.horizontal, 16)
-
-                    Spacer(minLength: 18)
+                } else {
+                    Text("No analytics available.")
+                        .foregroundColor(.secondary)
+                        .padding(.top, 40)
                 }
-                .padding(.bottom, 22)
+
+                Spacer(minLength: 18)
             }
+            .padding(.bottom, 22)
+        }
+        .navigationTitle("Analytics")
+        .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            Task { await loadAnalytics() }
         }
     }
-}
-
-private struct WalletRevenueCard: View {
-    @EnvironmentObject private var session: AppSession
-    @EnvironmentObject private var dynamic: DynamicManager
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-
-            HStack(alignment: .top) {
-                Circle()
-                    .fill(Color(.systemGray6))
-                    .frame(width: 34, height: 34)
-                    .overlay(
-                        Image(systemName: "bitcoinsign.circle")
-                            .foregroundStyle(.secondary)
-                    )
-
-                Spacer()
-
-                Pill(text: "Last 7 Days", isGreen: false)
+    
+    private func loadAnalytics() async {
+        guard let domain = session.activeDomain, !domain.isEmpty else {
+            errorMessage = "No active domain selected."
+            return
+        }
+        
+        isLoading = true
+        errorMessage = nil
+        
+        do {
+            let data = try await DomaAPI.shared.getDomainAnalytics(domain: domain)
+            await MainActor.run {
+                self.analytics = data
+                self.isLoading = false
             }
-
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text("0.45 ETH")
-                        .font(.system(size: 20, weight: .bold))
-
-                    Text("($200.89)")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(.secondary)
-                }
-
-                Text("Premium Revenue")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(.secondary)
-            }
-
-            PrimaryWideButton(title: "Withdraw Wallet") {
-                dynamic.disconnect()
-                session.isAuthed = false
-                session.walletAddress = nil
+        } catch {
+            await MainActor.run {
+                self.errorMessage = error.localizedDescription
+                self.isLoading = false
             }
         }
-        .padding(14)
-        .background(Color(.systemGray6).opacity(0.7))
-        .clipShape(RoundedRectangle(cornerRadius: 18))
     }
 }
 
@@ -152,14 +151,14 @@ private struct SmallStatCard: View {
 }
 
 private struct HeatmapCard: View {
+    let heatmapData: [DomaAPI.AnalyticsHeatmapDay]
     private let days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-
-    // simple fixed pattern (UI-only)
-    private let cells: [Double] = [
-        0.9, 0.3, 0.1, 0.6, 0.2, 0.8, 0.4,
-        0.2, 0.1, 0.7, 0.2, 0.3, 0.5, 0.1,
-        0.6, 0.2, 0.1, 0.9, 0.2, 0.1, 0.7
-    ]
+    
+    // Convert backend heatmap to max values for opacity scaling
+    private var maxActivity: Double {
+        let max = heatmapData.flatMap { $0.hours }.max() ?? 1
+        return Double(max == 0 ? 1 : max)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -168,19 +167,26 @@ private struct HeatmapCard: View {
 
             // heatmap grid
             VStack(spacing: 8) {
-                ForEach(0..<3, id: \.self) { row in
+                ForEach(0..<min(7, heatmapData.count), id: \.self) { dayIndex in
+                    let dayData = heatmapData[dayIndex]
                     HStack(spacing: 8) {
-                        ForEach(0..<7, id: \.self) { col in
-                            let idx = row * 7 + col
+                        // Showing samples from hours (e.g. condensing 24 hours to 7 blocks for UI parity, or just showing first 7)
+                        // The original UI mock showed 7 blocks per row. We can aggregate every ~3 hours into a block.
+                        let condensed = condenseHours(dayData.hours, into: 7)
+                        
+                        ForEach(0..<condensed.count, id: \.self) { col in
+                            let count = Double(condensed[col])
+                            let intensity = count / maxActivity
+                            
                             RoundedRectangle(cornerRadius: 4)
-                                .fill(Color.blue.opacity(0.15 + (cells[idx] * 0.75)))
+                                .fill(Color.blue.opacity(0.15 + (intensity * 0.75)))
                                 .frame(height: 10)
                         }
                     }
                 }
             }
 
-            // day labels
+            // day labels (Y axis originally in mock, but keeping it as X axis labels like original)
             HStack {
                 ForEach(days, id: \.self) { d in
                     Text(d)
@@ -193,6 +199,21 @@ private struct HeatmapCard: View {
         .padding(14)
         .background(Color(.systemGray6).opacity(0.7))
         .clipShape(RoundedRectangle(cornerRadius: 18))
+    }
+    
+    // Helper to condense 24 hours into fewer blocks (e.g., 7 columns)
+    private func condenseHours(_ hours: [Int], into columns: Int) -> [Int] {
+        guard hours.count > 0, columns > 0 else { return Array(repeating: 0, count: columns) }
+        var result = [Int]()
+        let chunkSize = Double(hours.count) / Double(columns)
+        
+        for i in 0..<columns {
+            let start = Int(Double(i) * chunkSize)
+            let end = min(Int(Double(i + 1) * chunkSize), hours.count)
+            let chunkSum = hours[start..<end].reduce(0, +)
+            result.append(chunkSum)
+        }
+        return result
     }
 }
 

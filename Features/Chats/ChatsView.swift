@@ -140,6 +140,12 @@ struct ChatsView: View {
                     Task { await loadConversations() }
                 }
             }
+            .onReceive(NotificationCenter.default.publisher(for: .domaReloadConversations)) { _ in
+                Task { await loadConversations() }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .domaNewMessage)) { _ in
+                Task { await loadConversations() }
+            }
         }
     }
 

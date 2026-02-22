@@ -5,13 +5,24 @@ import Combine
 @MainActor
 final class AppSession: ObservableObject {
     @Published var isAuthed: Bool = false
+    
+    // WebSocket client for real-time events
+    let webSocket = DomaWebSocket()
 
     // ✅ the Domains screen is clearly reading this
     @Published var walletAddress: String? = nil
 
     // ✅ Domains screen should render from this
     @Published var domains: [String] = []
-    @Published var activeDomain: String? = nil
+    @Published var activeDomain: String? = nil {
+        didSet {
+            if let domain = activeDomain, !domain.isEmpty {
+                webSocket.connect(domain: domain)
+            } else {
+                webSocket.disconnect()
+            }
+        }
+    }
 
     @Published var isLoadingDomains: Bool = false
     @Published var domainsError: String? = nil

@@ -222,6 +222,28 @@ final class DomaAPI {
     }
 
     // MARK: - Analytics
+    
+    struct DomainAnalyticsResponse: Decodable {
+        let domain: String
+        let totalMessages: Int
+        let totalMessagesLastWeek: Int
+        let percentChange: Double
+        let engagementRate: Double
+        let heatmap: [AnalyticsHeatmapDay]
+    }
+
+    struct AnalyticsHeatmapDay: Decodable, Identifiable {
+        var id: Int { day }
+        let day: Int
+        let hours: [Int]
+    }
+
+    func getDomainAnalytics(domain: String) async throws -> DomainAnalyticsResponse {
+        try await APIClient.shared.request(
+            "domains/analytics",
+            query: ["domain": domain.lowercased()]
+        )
+    }
 
     func analyticsSummary(owner: String) async throws -> AnalyticsSummaryResponse {
         try await APIClient.shared.request(
