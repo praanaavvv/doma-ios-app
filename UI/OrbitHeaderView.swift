@@ -1,70 +1,66 @@
 import SwiftUI
 
 struct OrbitHeaderView: View {
-    @State private var rotateOuter = false
-    @State private var rotateInner = false
+    @State private var innerRotation: Double = 0
+    @State private var inner2Rotation: Double = 0
+    @State private var middleRotation: Double = 0
+    @State private var outerRotation: Double = 0
 
     var body: some View {
         ZStack {
-
-            // Outer dotted orbit
-            Circle()
-                .stroke(
-                    Color.blue.opacity(0.25),
-                    style: StrokeStyle(lineWidth: 1, dash: [2, 6])
-                )
-                .frame(width: 300, height: 300)
-                .rotationEffect(.degrees(rotateOuter ? 360 : 0))
-                .animation(
-                    .linear(duration: 30).repeatForever(autoreverses: false),
-                    value: rotateOuter
-                )
-
-            // Inner solid orbit
-            Circle()
-                .stroke(Color.blue.opacity(0.15), lineWidth: 1)
-                .frame(width: 220, height: 220)
-                .rotationEffect(.degrees(rotateInner ? -360 : 0))
-                .animation(
-                    .linear(duration: 18).repeatForever(autoreverses: false),
-                    value: rotateInner
-                )
-
-            // Orbiting dots
-            orbitDot(radius: 150, size: 10, delay: 0)
-            orbitDot(radius: 150, size: 8, delay: 1.5)
-            orbitDot(radius: 110, size: 7, delay: 3)
-
-            // ✅ CENTER LOGO (UPDATED NAME)
-            Image("Domalogo")
+            // 4 Orbits
+            orbitRing(radius: 70)
+            orbitRing(radius: 100)
+            orbitRing(radius: 130)
+            orbitRing(radius: 160) // Fits perfectly within 320x320
+            
+            // 4 Particles (Varying sizes)
+            orbitParticle(radius: 70, size: 14, rotation: innerRotation)
+            orbitParticle(radius: 100, size: 16, rotation: inner2Rotation) // Counter-clockwise
+            orbitParticle(radius: 130, size: 18, rotation: middleRotation) // Clockwise
+            orbitParticle(radius: 160, size: 20, rotation: outerRotation) // Counter-clockwise
+            
+            // ✅ CENTER LOGO - Fixed position
+            Image("DomaLogo")
+                .renderingMode(.template) // Allows coloring the SVG
                 .resizable()
                 .scaledToFit()
                 .frame(width: 90, height: 90)
-                .background(
-                    Circle()
-                        .fill(Color.white)
-                        .shadow(color: .black.opacity(0.08), radius: 8)
-                )
+                .foregroundStyle(Color.blue) // Tints the template image blue
         }
         .onAppear {
-            rotateOuter = true
-            rotateInner = true
+            // Set different speeds and directions
+            withAnimation(.linear(duration: 12).repeatForever(autoreverses: false)) {
+                innerRotation = 360
+            }
+            withAnimation(.linear(duration: 15).repeatForever(autoreverses: false)) {
+                inner2Rotation = -360 // spins the opposite way
+            }
+            withAnimation(.linear(duration: 18).repeatForever(autoreverses: false)) {
+                middleRotation = 360
+            }
+            withAnimation(.linear(duration: 25).repeatForever(autoreverses: false)) {
+                outerRotation = -360 // spins the opposite way
+            }
         }
     }
-
-    // MARK: - Orbiting Dot
-    private func orbitDot(radius: CGFloat, size: CGFloat, delay: Double) -> some View {
+    
+    // MARK: - Helpers
+    private func orbitRing(radius: CGFloat) -> some View {
         Circle()
-            .fill(Color.blue)
-            .frame(width: size, height: size)
-            .offset(x: radius)
-            .rotationEffect(.degrees(rotateOuter ? 360 : 0))
-            .animation(
-                .linear(duration: 22)
-                    .repeatForever(autoreverses: false)
-                    .delay(delay),
-                value: rotateOuter
-            )
+            .stroke(Color.blue.opacity(0.40), style: StrokeStyle(lineWidth: 1.5, dash: [1, 6]))
+            .frame(width: radius * 2, height: radius * 2)
+    }
+    
+    private func orbitParticle(radius: CGFloat, size: CGFloat, rotation: Double) -> some View {
+        // ZStack wrapper helps set a central pivot point for the dot
+        ZStack {
+            Circle()
+                .fill(Color.blue)
+                .frame(width: size, height: size)
+                .offset(x: radius) // Push dot to the edge of the radius
+        }
+        .rotationEffect(.degrees(rotation))
     }
 }
 
