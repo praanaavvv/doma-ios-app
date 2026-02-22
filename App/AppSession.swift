@@ -39,9 +39,9 @@ final class AppSession: ObservableObject {
         defer { isLoadingDomains = false }
 
         do {
-            let result = try await DomaAPI.shared.fetchDomains(owner: addr)
+            let result = try await DomaAPI.shared.fetchWalletData(wallet: addr)
             // ✅ update exactly what the UI shows
-            domains = result
+            domains = result.domains ?? []
         } catch {
             domains = []
             domainsError = error.localizedDescription

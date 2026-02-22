@@ -9,6 +9,10 @@ struct SettingsView: View {
     @State private var inputName: String = ""
     @State private var isSyncing = false
     
+    // Edit Profile state
+    @State private var showEditNameAlert = false
+    @State private var editNameInput = ""
+    
     enum ProfileStatus: Equatable {
         case loading, notSet, ok, error(String)
     }
@@ -78,7 +82,40 @@ struct SettingsView: View {
 
                     // Sections
                     SettingsSection(title: "Account") {
-                        SettingsRow(icon: "person.crop.circle", title: "My Profile")
+                        Button {
+                            if case .ok = profileStatus {
+                                editNameInput = profileName
+                            } else {
+                                editNameInput = ""
+                            }
+                            showEditNameAlert = true
+                        } label: {
+                            HStack(spacing: 12) {
+                                Circle()
+                                    .fill(Color(.systemGray6))
+                                    .frame(width: 34, height: 34)
+                                    .overlay(
+                                        Image(systemName: "person.crop.circle")
+                                            .foregroundStyle(.secondary)
+                                    )
+
+                                Text("Edit Profile Name")
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundStyle(.primary)
+
+                                Spacer()
+
+                                Image(systemName: "pencil")
+                                    .foregroundStyle(.tertiary)
+                            }
+                            .padding(.vertical, 12)
+                            .padding(.horizontal, 14)
+                        }
+                        .buttonStyle(.plain)
+                        .overlay(
+                            Divider().padding(.leading, 60),
+                            alignment: .bottom
+                        )
                         NavigationLink {
                             AppearanceSettingsView()
                         } label: {
@@ -222,6 +259,16 @@ struct SettingsView: View {
                 }
                 .padding(.bottom, 100)
             }
+            .alert("Edit Profile Name", isPresented: $showEditNameAlert) {
+                TextField("New Name", text: $editNameInput)
+                    .textInputAutocapitalization(.words)
+                Button("Cancel", role: .cancel) { }
+                Button("Save") {
+                    Task { await editProfileName() }
+                }
+            } message: {
+                Text("Enter a new name for your profile.")
+            }
         }
         .task(id: session.walletAddress) {
             await loadProfile()
@@ -279,11 +326,25 @@ struct SettingsView: View {
         
         do {
             let res = try await DomaAPI.shared.syncWallet(wallet: wallet)
-            session.domains = res.domains
-            // Also refresh domains from standard fetch to be sure
-            await session.refreshDomains()
+            if res.status == "ok" {
+                await session.refreshDomains()
+            }
         } catch {
             print("Sync failed: \(error)")
+        }
+    }
+
+    private func editProfileName() async {
+        guard let wallet = session.walletAddress, !editNameInput.isEmpty else { return }
+        isSyncing = true
+        defer { isSyncing = false }
+        
+        do {
+            let _ = try await DomaAPI.shared.editProfile(wallet: wallet, name: editNameInput)
+            // Fetch the profile fresh to re-render the UI
+            await loadProfile()
+        } catch {
+            print("Edit profile failed: \(error)")
         }
     }
 }

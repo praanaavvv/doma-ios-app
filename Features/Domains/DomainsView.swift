@@ -5,8 +5,7 @@ struct DomainsView: View {
     @EnvironmentObject private var dynamic: DynamicManager
     @Environment(\.openURL) private var openURL
 
-    @State private var domainItems: [DomainItem] = []
-    @State private var isLoadingItems = false
+    @State private var isSyncing = false
     @State private var onboardingDomain: String? = nil
 
     var body: some View {
@@ -37,19 +36,25 @@ struct DomainsView: View {
 
                 Spacer()
                 
-                // Plus button
+                // Sync button
                 Button {
-                     if let url = URL(string: "https://doma.xyz/") {
-                         openURL(url)
-                     }
+                    Task { await syncDomains() }
                 } label: {
-                    Image(systemName: "plus")
-                        .font(.system(size: 20, weight: .medium))
-                        .foregroundColor(.primary)
-                        .frame(width: 44, height: 44)
-                        .background(Color(.systemGray6))
-                        .clipShape(Circle())
+                    if isSyncing {
+                        ProgressView().scaleEffect(0.8)
+                            .frame(width: 44, height: 44)
+                            .background(Color(.systemGray6))
+                            .clipShape(Circle())
+                    } else {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                            .font(.system(size: 20, weight: .medium))
+                            .foregroundColor(.primary)
+                            .frame(width: 44, height: 44)
+                            .background(Color(.systemGray6))
+                            .clipShape(Circle())
+                    }
                 }
+                .disabled(isSyncing)
             }
             .padding(.horizontal, 20)
             .padding(.top, 8)
@@ -102,14 +107,12 @@ struct DomainsView: View {
             } else {
                 ScrollView {
                     LazyVStack(spacing: 16) {
-                        ForEach(domainItems, id: \.domain) { item in
+                        ForEach(session.domains, id: \.self) { domainStr in
                             DomainRowCard(
-                                domain: item.domain,
-                                isConfigured: item.messagingEnabled,
-                                statusText: statusText(for: item),
-                                isLoading: onboardingDomain == item.domain,
-                                onConfigure: {
-                                    Task { await configureDomain(item) }
+                                domain: domainStr,
+                                isActive: session.activeDomain == domainStr,
+                                onConnect: {
+                                    session.activeDomain = domainStr
                                 }
                             )
                         }
@@ -125,7 +128,6 @@ struct DomainsView: View {
                 session.walletAddress = addr
             }
             await session.refreshDomains()
-            await loadDomainItems()
         }
         .refreshable {
             // MARK: - ⚠️ TEMPORARY: Sync hardcoded address from DynamicManager
@@ -133,40 +135,25 @@ struct DomainsView: View {
                 session.walletAddress = addr
             }
             await session.refreshDomains()
-            await loadDomainItems()
         }
     }
 
-    private func loadDomainItems() async {
+    private func syncDomains(force: Bool = false) async {
         guard let owner = session.walletAddress, !owner.isEmpty else { return }
-        await MainActor.run { isLoadingItems = true }
-        defer { Task { await MainActor.run { isLoadingItems = false } } }
+        await MainActor.run { isSyncing = true }
+        defer { Task { await MainActor.run { isSyncing = false } } }
         do {
-            let items = try await DomaAPI.shared.fetchDomainItems(owner: owner)
-            await MainActor.run { self.domainItems = items }
+            let res = try await DomaAPI.shared.syncWallet(wallet: owner)
+            if res.status == "ok" {
+                await session.refreshDomains()
+                await MainActor.run {
+                    if session.activeDomain == nil, let first = session.domains.first {
+                        session.activeDomain = first
+                    }
+                }
+            }
         } catch {
             await MainActor.run { session.domainsError = error.localizedDescription }
-        }
-    }
-
-    private func configureDomain(_ item: DomainItem) async {
-        guard let owner = session.walletAddress, !owner.isEmpty else { return }
-        await MainActor.run { onboardingDomain = item.domain }
-        defer { Task { await MainActor.run { onboardingDomain = nil } } }
-        do {
-            try await DomaAPI.shared.onboardDomain(domain: item.domain, owner: owner, messagingEnabled: true, consentMode: "auto_accept", feeMode: "none")
-            await loadDomainItems()
-        } catch {
-            await MainActor.run { session.domainsError = error.localizedDescription }
-        }
-    }
-
-    private func statusText(for item: DomainItem) -> String {
-        if item.messagingEnabled { return "Messaging Ready" }
-        switch item.verificationStatus.lowercased() {
-        case "failed": return "Verification failed"
-        case "pending": return "Needs Configuration"
-        default: return "Needs Configuration"
         }
     }
 }
@@ -174,10 +161,8 @@ struct DomainsView: View {
 // MARK: - Domain Row Card
 struct DomainRowCard: View {
     let domain: String
-    let isConfigured: Bool
-    let statusText: String
-    let isLoading: Bool
-    let onConfigure: () -> Void
+    let isActive: Bool
+    let onConnect: () -> Void
 
     var body: some View {
         VStack(spacing: 0) {
@@ -201,54 +186,37 @@ struct DomainRowCard: View {
                 }
 
                 Spacer()
-
-                Text(statusText)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(statusColor)
             }
             .padding(16)
 
-            // Always show button for testing/reconfiguration
-            Button(action: onConfigure) {
+            Button(action: onConnect) {
                 HStack {
-                    if isLoading { ProgressView().scaleEffect(0.8).tint(.white) }
-                    Text(buttonTitle)
+                    if isActive {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.white)
+                    }
+                    Text(isActive ? "Connected" : "Connect")
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundColor(.white)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
-                .background(Color.blue)
+                // Use a green color if connected, else blue
+                .background(isActive ? Color(hex: "2ABC7E") : Color.blue)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
             }
             .buttonStyle(.plain)
+            .disabled(isActive) // Disable button if already connected
             .padding(.horizontal, 16)
             .padding(.bottom, 16)
         }
         .background(Color(.secondarySystemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-        // Removed border stroke
     }
 
     private var domainIdentifier: String {
         let prefix = domain.prefix(2).lowercased()
         return String(prefix)
-    }
-
-    private var isFailed: Bool {
-        statusText.lowercased().contains("failed")
-    }
-    
-    private var buttonTitle: String {
-        if isFailed { return "Retry" }
-        if isConfigured { return "Reconfigure DNS" }
-        return "Configure DNS"
-    }
-
-    private var statusColor: Color {
-        if isConfigured { return Color(hex: "2ABC7E") } // Green
-        if isFailed { return .red }
-        return .orange
     }
 }
 

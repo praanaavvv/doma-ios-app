@@ -367,10 +367,15 @@ struct ChatsView: View {
         }
 
         do {
-            let domains = try await DomaAPI.shared.fetchDomains(owner: wallet)
-            print("[Chats] Fetched \(domains.count) domain(s) for wallet: \(wallet)")
+            // Ensure active domain is set
+            if session.activeDomain == nil {
+                await session.refreshDomains()
+                if let first = session.domains.first {
+                    await MainActor.run { session.activeDomain = first }
+                }
+            }
             
-            guard let primaryDomain = domains.first else {
+            guard let primaryDomain = session.activeDomain else {
                 await MainActor.run {
                     self.conversations = []
                     self.isLoading = false

@@ -89,13 +89,18 @@ final class DomaAPI {
         let name: String
         let domains: [String]
     }
+
+    struct SyncWalletResponse: Decodable {
+        let status: String
+    }
     
-    /// Check if profile exists (returns status: "not set" or "ok")
     func fetchWalletData(wallet: String) async throws -> WalletDataResponse {
-        try await APIClient.shared.request(
+        let response: WalletDataResponse = try await APIClient.shared.request(
             "domains/wallet-data",
             query: ["wallet": wallet]
         )
+        print("DEBUG WalletDataResponse for \(wallet): \(response)")
+        return response
     }
 
     /// Create/Update profile name and sync domains
@@ -111,8 +116,21 @@ final class DomaAPI {
         )
     }
 
+    /// Edit the profile name for a wallet
+    func editProfile(wallet: String, name: String) async throws -> SetupProfileResponse {
+        struct Body: Encodable {
+            let wallet: String
+            let name: String
+        }
+        return try await APIClient.shared.request(
+            "domains/edit-profile",
+            method: "PATCH",
+            body: Body(wallet: wallet, name: name)
+        )
+    }
+
     /// Sync domains for a wallet (e.g. if purchase happens outside app)
-    func syncWallet(wallet: String) async throws -> SetupProfileResponse {
+    func syncWallet(wallet: String) async throws -> SyncWalletResponse {
         struct Body: Encodable { let wallet: String }
         return try await APIClient.shared.request(
             "domains/sync-wallet",

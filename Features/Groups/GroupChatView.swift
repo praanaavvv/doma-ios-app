@@ -17,9 +17,6 @@ struct GroupChatView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                // Domain selector header
-                domainSelector
-                
                 // Create group expandable section
                 if showCreateGroup {
                     createGroupSection
@@ -63,45 +60,18 @@ struct GroupChatView: View {
                 }
             }
             .onAppear {
-                Task { await viewModel.initialLoad(walletAddress: session.walletAddress) }
+                Task { await viewModel.initialLoad(activeDomain: session.activeDomain) }
+            }
+            .onChange(of: session.activeDomain) { newDomain in
+                Task { await viewModel.refreshConversations(for: newDomain) }
             }
             .onReceive(NotificationCenter.default.publisher(for: .domaReloadGroups)) { _ in
-                Task { await viewModel.refreshConversations() }
+                Task { await viewModel.refreshConversations(for: session.activeDomain) }
             }
             .onReceive(NotificationCenter.default.publisher(for: .domaNewMessage)) { _ in
-                Task { await viewModel.refreshConversations() }
+                Task { await viewModel.refreshConversations(for: session.activeDomain) }
             }
         }
-    }
-    
-    // MARK: - Domain Selector
-    
-    private var domainSelector: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "globe")
-                .font(.system(size: 14))
-                .foregroundStyle(.secondary)
-            
-            Text("Active domain")
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(.secondary)
-            
-            Spacer()
-            
-            Picker("Domain", selection: $viewModel.selectedDomain) {
-                ForEach(viewModel.domains, id: \.self) { domain in
-                    Text(domain).tag(domain)
-                }
-            }
-            .pickerStyle(.menu)
-            .tint(.blue)
-            .onChange(of: viewModel.selectedDomain) { _ in
-                Task { await viewModel.refreshConversations() }
-            }
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
-        .background(.ultraThinMaterial)
     }
     
     // MARK: - Create Group Section
@@ -213,7 +183,7 @@ struct GroupChatView: View {
             
             // Create button
             Button {
-                Task { await viewModel.createGroup(xmtpService: xmtpService) }
+                Task { await viewModel.createGroup(xmtpService: xmtpService, activeDomain: session.activeDomain) }
             } label: {
                 HStack(spacing: 8) {
                     if viewModel.isCreating {
@@ -331,8 +301,6 @@ struct GroupChatView: View {
 
 @MainActor
 class GroupChatViewModel: ObservableObject {
-    @Published var domains: [String] = []
-    @Published var selectedDomain: String = ""
     @Published var groupConversations: [GroupConversation] = []
     
     // Create Group State
@@ -350,27 +318,17 @@ class GroupChatViewModel: ObservableObject {
     // Validation Debounce Task
     private var validationTask: Task<Void, Never>?
     
-    func initialLoad(walletAddress: String?) async {
-        guard let owner = walletAddress, !owner.isEmpty else {
-            print("Error: No wallet address available for fetching domains.")
-            return
-        }
-        
-        do {
-            self.domains = try await DomaAPI.shared.fetchDomains(owner: owner)
-            if let first = self.domains.first, selectedDomain.isEmpty {
-                selectedDomain = first
-                await refreshConversations()
-            }
-        } catch {
-            print("Error fetching domains: \(error)")
-        }
+    func initialLoad(activeDomain: String?) async {
+        await refreshConversations(for: activeDomain)
     }
     
-    func refreshConversations() async {
-        guard !selectedDomain.isEmpty else { return }
+    func refreshConversations(for activeDomain: String?) async {
+        guard let domain = activeDomain, !domain.isEmpty else {
+            self.groupConversations = []
+            return
+        }
         do {
-            self.groupConversations = try await DomaAPI.shared.getGroupConversations(domain: selectedDomain)
+            self.groupConversations = try await DomaAPI.shared.getGroupConversations(domain: domain)
         } catch {
             print("Error fetching groups: \(error)")
         }
@@ -397,7 +355,7 @@ class GroupChatViewModel: ObservableObject {
     }
     
     func addMemberToSelection() {
-        guard memberStatus == .valid, !selectedMembers.contains(newMemberDomain), newMemberDomain != selectedDomain else { return }
+        guard memberStatus == .valid, !selectedMembers.contains(newMemberDomain) else { return }
         selectedMembers.append(newMemberDomain)
         newMemberDomain = ""
         memberStatus = .idle
@@ -407,7 +365,11 @@ class GroupChatViewModel: ObservableObject {
         selectedMembers.removeAll { $0 == member }
     }
     
-    func createGroup(xmtpService: XmtpService) async {
+    func createGroup(xmtpService: XmtpService, activeDomain: String?) async {
+        guard let domain = activeDomain, !domain.isEmpty else {
+             createError = "No active domain selected."
+             return
+        }
         guard !newGroupName.isEmpty, !selectedMembers.isEmpty else { return }
         isCreating = true
         createError = nil
@@ -415,7 +377,7 @@ class GroupChatViewModel: ObservableObject {
         
         do {
             let result = try await xmtpService.createGroup(
-                ownerDomain: selectedDomain,
+                ownerDomain: domain,
                 groupName: newGroupName,
                 memberDomains: selectedMembers
             )
@@ -428,7 +390,7 @@ class GroupChatViewModel: ObservableObject {
             
             newGroupName = ""
             selectedMembers = []
-            await refreshConversations()
+            await refreshConversations(for: domain)
         } catch {
             createError = "Failed to create group: \(error.localizedDescription)"
             print("Failed to create group: \(error)")

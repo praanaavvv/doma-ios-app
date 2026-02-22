@@ -3,7 +3,7 @@ import SwiftUI
 struct OnboardingView: View {
     @EnvironmentObject private var session: AppSession
     @EnvironmentObject private var dynamic: DynamicManager
-
+    
     enum OnboardingState {
         case connect
         case checkingProfile
@@ -12,23 +12,23 @@ struct OnboardingView: View {
         case ready(String) // wallet connnected
         case error(String)
     }
-
+    
     @State private var currentState: OnboardingState = .connect
     @State private var profileNameInput: String = ""
     @State private var showDomainPicker = false
     @State private var domains: [String] = []
-
+    
     var body: some View {
         VStack(spacing: 18) {
             Spacer()
-
+            
             OrbitHeaderView()
                 .frame(height: 320)
                 .padding(.top, 12)
-
+            
             Text("Doma Secure")
                 .font(.system(size: 28, weight: .bold))
-
+            
             Text(
                 "Stay connected with your friends securely through our domain-based messaging service, ensuring your conversations are private and protected."
             )
@@ -36,9 +36,9 @@ struct OnboardingView: View {
             .foregroundStyle(.secondary)
             .multilineTextAlignment(.center)
             .padding(.horizontal, 28)
-
+            
             VStack(spacing: 12) {
-
+                
                 // ✅ CONNECT WALLET (Dynamic + ASWebAuthenticationSession)
                 if case .connect = currentState {
                     PrimaryPillButton(
@@ -49,7 +49,7 @@ struct OnboardingView: View {
                     }
                     .disabled(!dynamic.isReady || dynamic.isConnecting)
                 }
-
+                
                 // ❌ NOT READY / ERROR
                 if !dynamic.isReady {
                     if let err = dynamic.errorMessage, !err.isEmpty {
@@ -65,14 +65,14 @@ struct OnboardingView: View {
                             .padding(.horizontal, 24)
                     }
                 }
-
+                
                 // 🔄 CONNECTING
                 if dynamic.isConnecting {
                     ProgressView("Connecting wallet…")
                         .font(.system(size: 13))
                         .tint(.blue)
                 }
-
+                
                 // CHECKING PROFILE / DOMAINS
                 if case .checkingProfile = currentState {
                     ProgressView("Checking profile…")
@@ -85,7 +85,7 @@ struct OnboardingView: View {
                         .font(.system(size: 13))
                         .tint(.blue)
                 }
-
+                
                 // 🆕 CREATE PROFILE
                 if case .createProfile = currentState {
                     VStack(spacing: 12) {
@@ -118,7 +118,7 @@ struct OnboardingView: View {
                     .cornerRadius(12)
                     .padding(.horizontal, 16)
                 }
-
+                
                 // ✅ READY TO CONTINUE (Profile OK)
                 if case .ready(let addr) = currentState {
                     Text("Connected: \(addr)")
@@ -126,13 +126,13 @@ struct OnboardingView: View {
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 12)
-
+                    
                     PrimaryPillButton(
                         title: "Continue",
                         systemIcon: "arrow.right"
                     ) {
                         if let addr = dynamic.walletAddress {
-                             Task { await checkProfileAndProceed(ownerAddress: addr) }
+                            Task { await checkProfileAndProceed(ownerAddress: addr) }
                         }
                     }
                     
@@ -146,7 +146,7 @@ struct OnboardingView: View {
                     }
                     .padding(.top, 4)
                 }
-
+                
                 // ❌ ERROR
                 if case .error(let msg) = currentState {
                     Text(msg)
@@ -186,11 +186,11 @@ struct OnboardingView: View {
                     currentState = .ready(addr)
                 }
             }
-
+            
             Spacer()
         }
         .padding(.horizontal, 20)
-
+        
         // ✅ DOMAIN PICKER
         .fullScreenCover(isPresented: $showDomainPicker) {
             DomainPickerView(domains: domains) { pickedDomain in
@@ -201,7 +201,7 @@ struct OnboardingView: View {
             }
         }
     }
-
+    
     // MARK: - Fetch domains
     // MARK: - Flow Logic
     
@@ -218,7 +218,23 @@ struct OnboardingView: View {
                 currentState = .createProfile
             } else {
                 // 2b. Profile exists (or newly created), fetch domains
-                await fetchDomains(ownerAddress: ownerAddress)
+                let list = data.domains ?? []
+                session.walletAddress = ownerAddress
+                domains = list
+                session.domains = list
+                
+                if list.isEmpty {
+                    currentState = .error("No domains found for this wallet.")
+                    return
+                }
+                
+                if list.count == 1 {
+                    session.activeDomain = list[0]
+                    session.isAuthed = true
+                } else {
+                    currentState = .ready(ownerAddress)
+                    showDomainPicker = true
+                }
             }
         } catch {
             currentState = .error("Failed to check profile: \(error.localizedDescription)")
@@ -234,40 +250,28 @@ struct OnboardingView: View {
         do {
             let res = try await DomaAPI.shared.setupProfile(wallet: addr, name: profileNameInput)
             // proceed
-            await fetchDomains(ownerAddress: addr)
-        } catch {
-            currentState = .error("Setup failed: \(error.localizedDescription)")
-        }
-    }
-
-    @MainActor
-    private func fetchDomains(ownerAddress: String) async {
-        currentState = .checkingDomains
-        
-        do {
-            session.walletAddress = ownerAddress // update session
-            
-            let list = try await DomaAPI.shared.fetchDomains(owner: ownerAddress)
-            
+            let list = res.domains
+            session.walletAddress = addr
             domains = list
             session.domains = list
             
-            // If domains exist, we can show picker.
-            // If empty, we might want to show error or let them pick (empty list -> maybe just show empty state in picker?)
-            // The original code showed error if empty. Let's stick to that but maybe more graceful later.
             if list.isEmpty {
                 currentState = .error("No domains found for this wallet.")
                 return
             }
             
-            // Success -> Ready state
-            currentState = .ready(ownerAddress)
-            showDomainPicker = true // Auto-trigger or let user click continue? Original code auto-triggered.
-            // User flow: Connect -> Check/Setup -> Fetch -> [Auto Picker] sounds good.
+            if list.count == 1 {
+                session.activeDomain = list[0]
+                session.isAuthed = true
+            } else {
+                currentState = .ready(addr)
+                showDomainPicker = true
+            }
         } catch {
-            currentState = .error("Failed to fetch domains: \(error.localizedDescription)")
-            session.domains = []
+            currentState = .error("Setup failed: \(error.localizedDescription)")
         }
     }
 }
+
+
 
