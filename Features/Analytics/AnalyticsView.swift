@@ -98,6 +98,10 @@ struct AnalyticsView: View {
         
         do {
             let data = try await DomaAPI.shared.getDomainAnalytics(domain: domain)
+            
+            // Debug print to console
+            print("[\(domain)] Analytics Response: \(data)")
+            
             await MainActor.run {
                 self.analytics = data
                 self.isLoading = false
@@ -160,39 +164,47 @@ private struct HeatmapCard: View {
         return Double(max == 0 ? 1 : max)
     }
 
+    private func color(for count: Int) -> Color {
+        guard count > 0 else { return Color.white.opacity(0.05) }
+        let ratio = Double(count) / maxActivity
+        switch ratio {
+        case 0..<0.25:  return Color.blue.opacity(0.3)
+        case 0.25..<0.5: return Color.blue.opacity(0.6)
+        case 0.5..<0.75: return Color.blue.opacity(0.8)
+        default:         return Color.blue
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Activity Heatmap")
                 .font(.system(size: 14, weight: .semibold))
 
-            // heatmap grid
-            VStack(spacing: 8) {
+            // heatmap grid (columns = days, rows = condensed hours)
+            HStack(spacing: 8) {
                 ForEach(0..<min(7, heatmapData.count), id: \.self) { dayIndex in
                     let dayData = heatmapData[dayIndex]
-                    HStack(spacing: 8) {
-                        // Showing samples from hours (e.g. condensing 24 hours to 7 blocks for UI parity, or just showing first 7)
-                        // The original UI mock showed 7 blocks per row. We can aggregate every ~3 hours into a block.
-                        let condensed = condenseHours(dayData.hours, into: 7)
-                        
-                        ForEach(0..<condensed.count, id: \.self) { col in
-                            let count = Double(condensed[col])
-                            let intensity = count / maxActivity
+                    let condensed = condenseHours(dayData.hours, into: 7)
+                    
+                    VStack(spacing: 8) {
+                        ForEach(0..<condensed.count, id: \.self) { row in
+                            let count = condensed[row]
                             
                             RoundedRectangle(cornerRadius: 4)
-                                .fill(Color.blue.opacity(0.15 + (intensity * 0.75)))
+                                .fill(color(for: count))
                                 .frame(height: 10)
                         }
                     }
                 }
             }
 
-            // day labels (Y axis originally in mock, but keeping it as X axis labels like original)
+            // day labels
             HStack {
                 ForEach(days, id: \.self) { d in
                     Text(d)
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .frame(maxWidth: .infinity, alignment: .center)
                 }
             }
         }
