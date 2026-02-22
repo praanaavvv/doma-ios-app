@@ -749,8 +749,11 @@ struct GroupDetailView: View {
         do {
             try await xmtpService.send(text: text)
             
-            // Broadcast message_sent via WebSocket
-            session.webSocket.sendMessageEvent(to: "", conversationId: group.conversationId)
+            // Broadcast message_sent via WebSocket to one other member (so backend validation passes)
+            let myDomain = session.webSocket.domain
+            if let recipient = currentMembers.first(where: { $0.domain != myDomain }) {
+                session.webSocket.sendMessageEvent(to: recipient.domain, conversationId: group.conversationId)
+            }
             
         } catch {
             print("Error sending message: \(error)")
