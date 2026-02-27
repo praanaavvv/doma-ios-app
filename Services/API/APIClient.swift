@@ -34,10 +34,10 @@ final class APIClient {
         }
         #if targetEnvironment(simulator)
         // Simulator can use localhost directly
-        return URL(string: "http://localhost:8080")!
+        return URL(string: "https://xmtp-messaging-domain.onrender.com")!
         #else
         // On device, set API_BASE_URL in Info.plist to your machine's IP: http://<YOUR_MAC_IP>:8080
-        return URL(string: "http://localhost:8080")!
+        return URL(string: "https://xmtp-messaging-domain.onrender.com")!
         #endif
     }()
 

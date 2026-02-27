@@ -9,6 +9,7 @@ import Foundation
 import SwiftUI
 import Combine
 import WalletConnectSign
+import ReownAppKit
 #if canImport(XMTPiOS)
 import XMTPiOS
 #endif
@@ -64,12 +65,12 @@ final class XmtpService: ObservableObject {
     @Published private(set) var isSending: Bool = false
 
     #if canImport(XMTPiOS)
-    private var client: Client?
+    private(set) var client: Client?
     private var messageStreamTask: Task<Void, Never>?
     #else
     // Fallback placeholders when XMTP SDK isn't available
     private class PlaceholderClient {}
-    private var client: PlaceholderClient?
+    private(set) var client: PlaceholderClient?
     private var messageStreamTask: Task<Void, Never>?
     #endif
 
@@ -225,32 +226,90 @@ final class XmtpService: ObservableObject {
         // 2. Get or create DB encryption key (persisted in UserDefaults)
         let udKey = "d_db_key_wc_\(address.lowercased())"
         var dbKey: Data
+        let hasExistingDBKey: Bool
+        
         if let stored = UserDefaults.standard.data(forKey: udKey) {
             dbKey = stored
+            hasExistingDBKey = true
             print("DEBUG: [XmtpService] Using stored DB key for \(address)")
         } else {
             dbKey = Data.random(length: 32)
+            hasExistingDBKey = false
             UserDefaults.standard.set(dbKey, forKey: udKey)
             print("DEBUG: [XmtpService] Created & stored new DB key for \(address)")
         }
 
         // 3. Create signer backed by WalletConnect
         let signer = WalletConnectXMTPSigner(address: address, session: session)
+        
+        // 4. Client Options
+        let options = ClientOptions(
+            api: .init(env: .dev),
+            dbEncryptionKey: dbKey
+        )
 
-        // 4. Create XMTP client — this will prompt the user to sign in MetaMask
-        //    If the DB key doesn't match the existing database, we'll catch the
-        //    PRAGMA error, nuke the stale files, generate a fresh key, and retry once.
+        // 5. Attempt to build or create the client
         do {
-            self.client = try await Self.createClientWithKeyRecovery(
-                signer: signer,
-                dbKey: &dbKey,
-                dbKeyUDKey: udKey
-            )
+            if hasExistingDBKey {
+                print("DEBUG: [XmtpService] Found existing DB key for \(address). Attempting to build Client from local DB...")
+                do {
+                    self.client = try await Client.build(
+                        publicIdentity: signer.identity,
+                        options: options
+                    )
+                    print("DEBUG: [XmtpService] ✅ XMTP client successfully built from local DB.")
+                } catch {
+                    print("DEBUG: [XmtpService] ⚠️ Failed to build from local DB: \(error). Falling back to Client.create...")
+                    self.client = try await Self.createClientWithKeyRecovery(
+                        signer: signer,
+                        dbKey: &dbKey,
+                        dbKeyUDKey: udKey
+                    )
+                }
+            } else {
+                print("DEBUG: [XmtpService] No existing DB key found. Calling Client.create...")
+                self.client = try await Self.createClientWithKeyRecovery(
+                    signer: signer,
+                    dbKey: &dbKey,
+                    dbKeyUDKey: udKey
+                )
+            }
+            
+            // 6. Enforce Max 7 Installations
+            do {
+                print("DEBUG: [XmtpService] Checking active installations...")
+                // In XMTP v3 iOS SDK, inboxState is a method on Client, not PrivatePreferences
+                let inboxState = try await self.client?.inboxState(refreshFromNetwork: true)
+                if let installations = inboxState?.installations {
+                    print("DEBUG: [XmtpService] Found \(installations.count) active installations.")
+                    
+                    if installations.count > 7 {
+                        print("DEBUG: [XmtpService] ⚠️ Installation limit exceeded (>7). Revoking oldest ones...")
+                        
+                        // Sort by createdAt ascending (oldest first) (createdAt is Date? in v3)
+                        let sortedInstallations = installations.sorted { ($0.createdAt ?? Date.distantPast) < ($1.createdAt ?? Date.distantPast) }
+                        
+                        // Calculate how many we need to revoke to get down to 7
+                        let numberToRevoke = sortedInstallations.count - 7
+                        let installationsToRevoke = Array(sortedInstallations.prefix(numberToRevoke))
+                        
+                        // Revoke them using the valid v3 iOS SDK method `revokeInstallations` on Client
+                        let idsToRevoke = installationsToRevoke.map { $0.id }
+                        print("DEBUG: [XmtpService] Revoking installations: \(idsToRevoke)")
+                        try await self.client?.revokeInstallations(signingKey: signer, installationIds: idsToRevoke)
+                        
+                        print("DEBUG: [XmtpService] ✅ Successfully revoked oldest installations. Now under limit.")
+                    }
+                }
+            } catch {
+                print("DEBUG: [XmtpService] ⚠️ Failed to enforce installation limit: \(error)")
+            }
+            
             self.isReady = true
             self.useMock = false
-            print("DEBUG: [XmtpService] ✅ XMTP client created via WalletConnect")
+            print("DEBUG: [XmtpService] ✅ XMTP connection fully established")
         } catch {
-            print("DEBUG: [XmtpService] ❌ Client.create FAILED: \(error)")
+            print("DEBUG: [XmtpService] ❌ XMTP Init FAILED: \(error)")
             throw error
         }
         #else
@@ -475,6 +534,76 @@ final class XmtpService: ObservableObject {
             stored.append(optimistic)
             mockConversations[cid] = stored
         }
+    }
+
+    // MARK: - Installation Management
+    
+    struct XMTPDevice: Hashable {
+        let id: String
+        let createdAt: Date
+    }
+    
+    /// Returns the active installations for this identity.
+    func getInstallationDevices() async throws -> [XMTPDevice] {
+        if useMock {
+            return [
+                XMTPDevice(id: "mock-installation-1", createdAt: Date().addingTimeInterval(-86400)),
+                XMTPDevice(id: "mock-installation-2", createdAt: Date())
+            ]
+        }
+        
+        #if canImport(XMTPiOS)
+        guard let client else { throw XmtpServiceError.notConnected }
+        let state = try await client.inboxState(refreshFromNetwork: true)
+        return state.installations.map {
+            XMTPDevice(id: $0.id, createdAt: $0.createdAt ?? Date.distantPast)
+        }
+        #else
+        throw XmtpServiceError.generic("XMTP SDK not integrated.")
+        #endif
+    }
+    
+    /// Revokes a specific installation ID manually via Settings (requires wallet signature)
+    func revokeInstallationByID(_ id: String) async throws {
+        if useMock { return }
+        
+        #if canImport(XMTPiOS)
+        guard let client else { throw XmtpServiceError.notConnected }
+        
+        // Retrieve the active session to sign the revocation
+        guard let session = AppKit.instance.getSessions().first,
+              let address = AppKit.instance.getAddress() else {
+            throw XmtpServiceError.missingSigner
+        }
+        
+        let signer = WalletConnectXMTPSigner(address: address, session: session)
+        print("DEBUG: [XmtpService] Manually revoking installation ID: \(id)...")
+        try await client.revokeInstallations(signingKey: signer, installationIds: [id])
+        print("DEBUG: [XmtpService] ✅ Successfully revoked installation \(id)")
+        #else
+        throw XmtpServiceError.generic("XMTP SDK not integrated.")
+        #endif
+    }
+    
+    /// Revokes all other installations except the one on this device (requires wallet signature)
+    func revokeAllOtherInstallations() async throws {
+        if useMock { return }
+        
+        #if canImport(XMTPiOS)
+        guard let client else { throw XmtpServiceError.notConnected }
+        
+        // Retrieve the active session to sign the revocation
+        guard let session = AppKit.instance.getSessions().first,
+              let address = AppKit.instance.getAddress() else {
+            throw XmtpServiceError.missingSigner
+        }
+        
+        let signer = WalletConnectXMTPSigner(address: address, session: session)
+        print("DEBUG: [XmtpService] Revoking all OTHER installations...")
+        try await client.revokeAllOtherInstallations(signingKey: signer)
+        #else
+        throw XmtpServiceError.generic("XMTP SDK not integrated.")
+        #endif
     }
 
     // MARK: - Internal

@@ -123,14 +123,14 @@ struct DomainsView: View {
             }
         }
         .task {
-            // MARK: - ⚠️ TEMPORARY: Sync hardcoded address from DynamicManager
+            // Sync connected wallet address from DynamicManager
             if let addr = dynamic.walletAddress, session.walletAddress != addr {
                 session.walletAddress = addr
             }
             await session.refreshDomains()
         }
         .refreshable {
-            // MARK: - ⚠️ TEMPORARY: Sync hardcoded address from DynamicManager
+            // Sync connected wallet address from DynamicManager
             if let addr = dynamic.walletAddress, session.walletAddress != addr {
                 session.walletAddress = addr
             }

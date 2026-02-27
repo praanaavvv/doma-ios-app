@@ -222,12 +222,37 @@ struct ChatsView: View {
         xmtpError = nil
 
         Task {
+            // do {
+            //     // ✅ DEV MODE: Use hardcoded private key (no wallet approval needed)
+            //     try await xmtp.initializeWithPrivateKey(DynamicManager.hardcodedPrivateKey)
+            //     await MainActor.run {
+            //         isConnectingXmtp = false
+            //         print("[Chats] ✅ XMTP connected with hardcoded key")
+            //     }
+            // } catch {
+            //     await MainActor.run {
+            //         isConnectingXmtp = false
+            //         xmtpError = "Failed to connect: \(error.localizedDescription)"
+            //         print("[Chats] ❌ XMTP connect failed: \(error)")
+            //     }
+            // }
+        }
+
+        // --- PRODUCTION: WalletConnect signer ---
+        let sessions = AppKit.instance.getSessions()
+        guard let activeSession = sessions.first else {
+            xmtpError = "No active wallet session. Please reconnect your wallet."
+            return
+        }
+        Task {
             do {
-                // ✅ DEV MODE: Use hardcoded private key (no wallet approval needed)
-                try await xmtp.initializeWithPrivateKey(DynamicManager.hardcodedPrivateKey)
+                try await xmtp.initializeWithWalletConnect(
+                    address: walletAddress,
+                    session: activeSession
+                )
                 await MainActor.run {
                     isConnectingXmtp = false
-                    print("[Chats] ✅ XMTP connected with hardcoded key")
+                    print("[Chats] ✅ XMTP connected via wallet signature")
                 }
             } catch {
                 await MainActor.run {
@@ -237,31 +262,6 @@ struct ChatsView: View {
                 }
             }
         }
-
-        // --- PRODUCTION: WalletConnect signer (uncomment below, comment out hardcoded key above) ---
-        // let sessions = AppKit.instance.getSessions()
-        // guard let activeSession = sessions.first else {
-        //     xmtpError = "No active wallet session. Please reconnect your wallet."
-        //     return
-        // }
-        // Task {
-        //     do {
-        //         try await xmtp.initializeWithWalletConnect(
-        //             address: walletAddress,
-        //             session: activeSession
-        //         )
-        //         await MainActor.run {
-        //             isConnectingXmtp = false
-        //             print("[Chats] ✅ XMTP connected via wallet signature")
-        //         }
-        //     } catch {
-        //         await MainActor.run {
-        //             isConnectingXmtp = false
-        //             xmtpError = "Failed to connect: \(error.localizedDescription)"
-        //             print("[Chats] ❌ XMTP connect failed: \(error)")
-        //         }
-        //     }
-        // }
     }
 
     // MARK: - Start new chat from search bar

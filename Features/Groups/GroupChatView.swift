@@ -65,7 +65,9 @@ struct GroupChatView: View {
             .onChange(of: session.activeDomain) { newDomain in
                 Task { await viewModel.refreshConversations(for: newDomain) }
             }
-            .onReceive(NotificationCenter.default.publisher(for: .domaReloadGroups)) { _ in
+            .onReceive(NotificationCenter.default.publisher(for: .domaReloadGroups)) { notification in
+                let convId = notification.userInfo?["conversationId"] as? String ?? "unknown"
+                print("[GroupChatView] 🔄 Received domaReloadGroups for conv: \(convId), fetching new group conversations...")
                 Task { await viewModel.refreshConversations(for: session.activeDomain) }
             }
             .onReceive(NotificationCenter.default.publisher(for: .domaNewMessage)) { _ in
@@ -328,9 +330,11 @@ class GroupChatViewModel: ObservableObject {
             return
         }
         do {
+            print("[GroupChatViewModel] ⏳ Fetching group conversations for domain: \(domain)")
             self.groupConversations = try await DomaAPI.shared.getGroupConversations(domain: domain)
+            print("[GroupChatViewModel] ✅ Fetched \(self.groupConversations.count) group conversations")
         } catch {
-            print("Error fetching groups: \(error)")
+            print("[GroupChatViewModel] ❌ Error fetching groups: \(error)")
         }
     }
     

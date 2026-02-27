@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		AA000001AABB000100000001 /* AppearanceSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000001AABB000100000002 /* AppearanceSettingsView.swift */; };
+		AA000001AABB000200000001 /* InstallationsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000001AABB000200000002 /* InstallationsView.swift */; };
 		BB000001CCDD000100000001 /* WalletConnectXMTPSigner.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000001CCDD000100000002 /* WalletConnectXMTPSigner.swift */; };
 		FE03CC722EFD08B700ABF095 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE03CC712EFD08AA00ABF095 /* APIClient.swift */; };
 		FE03CC742EFD092F00ABF095 /* DTOs.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE03CC732EFD092A00ABF095 /* DTOs.swift */; };
@@ -62,6 +63,7 @@
 
 /* Begin PBXFileReference section */
 		AA000001AABB000100000002 /* AppearanceSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppearanceSettingsView.swift; sourceTree = "<group>"; };
+		AA000001AABB000200000002 /* InstallationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstallationsView.swift; sourceTree = "<group>"; };
 		BB000001CCDD000100000002 /* WalletConnectXMTPSigner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletConnectXMTPSigner.swift; sourceTree = "<group>"; };
 		FE03CC712EFD08AA00ABF095 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
 		FE03CC732EFD092A00ABF095 /* DTOs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DTOs.swift; sourceTree = "<group>"; };
@@ -303,6 +305,7 @@
 			children = (
 				FEC6A5DE2EF7C11F001C4DFB /* SettingsView.swift */,
 				AA000001AABB000100000002 /* AppearanceSettingsView.swift */,
+				AA000001AABB000200000002 /* InstallationsView.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -446,6 +449,7 @@
 				FEC6A5DF2EF7C128001C4DFB /* SettingsView.swift in Sources */,
 				FE4B6A6F2F49F7F70043DACA /* DomaWebSocket.swift in Sources */,
 				AA000001AABB000100000001 /* AppearanceSettingsView.swift in Sources */,
+				AA000001AABB000200000001 /* InstallationsView.swift in Sources */,
 				FE0AE6F42F432599005B7511 /* GroupChatView.swift in Sources */,
 				FEC6A5C62EF7B4FB001C4DFB /* ChatDetailView.swift in Sources */,
 				FEC286EA2F4362DD00669842 /* DomainsView.swift in Sources */,
@@ -803,3 +807,4 @@
 	};
 	rootObject = FEC6A56C2EF6FB00001C4DFB /* Project object */;
 }
+// Note: We need to append KeychainHelper.swift to PBXBuildFile and PBXFileReference

@@ -174,6 +174,35 @@ struct SettingsView: View {
                             Divider().padding(.leading, 60),
                             alignment: .bottom
                         )
+                        NavigationLink {
+                            InstallationsView()
+                        } label: {
+                            HStack(spacing: 12) {
+                                Circle()
+                                    .fill(Color(.systemGray6))
+                                    .frame(width: 34, height: 34)
+                                    .overlay(
+                                        Image(systemName: "cpu")
+                                            .foregroundStyle(.secondary)
+                                    )
+
+                                Text("XMTP Devices")
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundStyle(.primary)
+
+                                Spacer()
+
+                                Image(systemName: "chevron.right")
+                                    .foregroundStyle(.tertiary)
+                            }
+                            .padding(.vertical, 12)
+                            .padding(.horizontal, 14)
+                        }
+                        .buttonStyle(.plain)
+                        .overlay(
+                            Divider().padding(.leading, 60),
+                            alignment: .bottom
+                        )
                         SettingsRow(icon: "bell", title: "Notifications")
                     }
                     .padding(.horizontal, 16)

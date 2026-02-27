@@ -21,17 +21,17 @@ struct DomaSecureApp: App {
                 .onOpenURL { url in
                     handleDeeplink(url)
                 }
-                // Initialize XMTP when wallet connects via WalletConnect
-                .onChange(of: dynamic.walletAddress) { newAddress in
-                    guard let addr = newAddress, !addr.isEmpty else { return }
-                    initXmtp(for: addr)
-                }
+                // Initialize XMTP explicitly when the user taps "Sign & Connect" across the app
+                // .onChange(of: dynamic.walletAddress) { newAddress in
+                //     guard let addr = newAddress, !addr.isEmpty else { return }
+                //     initXmtp(for: addr)
+                // }
                 // Also init XMTP on launch if wallet was recovered from previous session
-                .task {
-                    if let addr = dynamic.walletAddress, !addr.isEmpty {
-                        initXmtp(for: addr)
-                    }
-                }
+                // .task {
+                //     if let addr = dynamic.walletAddress, !addr.isEmpty {
+                //         initXmtp(for: addr)
+                //     }
+                // }
         }
     }
 
@@ -40,40 +40,37 @@ struct DomaSecureApp: App {
         print("[App] Wallet address: \(walletAddress), initializing XMTP with hardcoded key...")
 
         Task {
-            do {
-                // ✅ DEV MODE: Use hardcoded private key directly (no wallet approval needed)
-                try await xmtpService.initializeWithPrivateKey(DynamicManager.hardcodedPrivateKey)
-                print("[App] ✅ XMTP initialized with hardcoded key")
-            } catch {
-                print("[App] ❌ XMTP init failed: \(error)")
-            }
+            // do {
+            //     // ✅ DEV MODE: Use hardcoded private key directly (no wallet approval needed)
+            //     try await xmtpService.initializeWithPrivateKey(DynamicManager.hardcodedPrivateKey)
+            //     print("[App] ✅ XMTP initialized with hardcoded key")
+            // } catch {
+            //     print("[App] ❌ XMTP init failed: \(error)")
+            // }
         }
 
-        // --- PRODUCTION: WalletConnect signer (comment out hardcoded key above and uncomment below) ---
-        // print("[App] Wallet connected: \(walletAddress), initializing XMTP via WalletConnect...")
-        // let sessions = AppKit.instance.getSessions()
-        // guard let activeSession = sessions.first else {
-        //     print("[App] ⚠️ No active WalletConnect session found yet.")
-        //     return
-        // }
-        // Task {
-        //     do {
-        //         try await xmtpService.initializeWithWalletConnect(
-        //             address: walletAddress,
-        //             session: activeSession
-        //         )
-        //         print("[App] ✅ XMTP initialized via WalletConnect")
-        //     } catch {
-        //         print("[App] ❌ XMTP init via WalletConnect failed: \(error)")
-        //     }
-        // }
+        // --- PRODUCTION: WalletConnect signer ---
+        print("[App] Wallet connected: \(walletAddress), initializing XMTP via WalletConnect...")
+        let sessions = AppKit.instance.getSessions()
+        guard let activeSession = sessions.first else {
+            print("[App] ⚠️ No active WalletConnect session found yet.")
+            return
+        }
+        Task {
+            do {
+                try await xmtpService.initializeWithWalletConnect(
+                    address: walletAddress,
+                    session: activeSession
+                )
+                print("[App] ✅ XMTP initialized via WalletConnect")
+            } catch {
+                print("[App] ❌ XMTP init via WalletConnect failed: \(error)")
+            }
+        }
     }
 }
 
 private func handleDeeplink(_ url: URL) {
-    #if os(iOS)
-    // TODO: Wire to your app's real deep link handler
-    #elseif os(macOS)
-    #else
-    #endif
+    print("[App] Deep link received: \(url)")
+    AppKit.instance.handleDeeplink(url)
 }

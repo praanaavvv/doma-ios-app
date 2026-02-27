@@ -16,9 +16,9 @@ final class DynamicManager: ObservableObject {
     private var bag = Set<AnyCancellable>()
 
     init() {
-        // ✅ DEV MODE: Use hardcoded address directly
-        self.walletAddress = Self.hardcodedAddress
-        print("[DynamicManager] Using hardcoded wallet address: \(Self.hardcodedAddress)")
+        // ✅ DEV MODE: Use hardcoded address directly (commented out for prod)
+        // self.walletAddress = Self.hardcodedAddress
+        // print("[DynamicManager] Using hardcoded wallet address: \(Self.hardcodedAddress)")
 
         // --- WalletConnect listeners (kept for production) ---
         // ✅ Listen to session settle events - this fires when wallet connection succeeds
@@ -89,7 +89,7 @@ final class DynamicManager: ObservableObject {
             .store(in: &bag)
 
         // ✅ Recover existing sessions on init (for production WalletConnect flow)
-        // recoverExistingSessions()  // Commented out — using hardcoded address instead
+        recoverExistingSessions()
 
         print("[DynamicManager] Initialized")
     }

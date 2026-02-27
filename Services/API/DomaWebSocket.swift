@@ -16,21 +16,20 @@ class DomaWebSocket: NSObject, URLSessionWebSocketDelegate, ObservableObject {
         super.init()
     }
 
-    // MARK: - Connect / Disconnect
+    private var pingTimer: Timer?
+    private var isConnected = false
 
     func connect(domain: String) {
-        // Disconnect existing if we are switching domains
         if let current = self.domain, current != domain {
             disconnect()
         }
         
         self.domain = domain
-        // Add a trailing slash before the query parameter
         guard let url = URL(string: "\(serverURL)/?domain=\(domain)") else { return }
         
-        // Disable cache on the request to be extra safe
         var request = URLRequest(url: url)
         request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
+        request.timeoutInterval = 10 // fail fast if server is unreachable
         
         let session = URLSession(configuration: .default, delegate: self, delegateQueue: .main)
         webSocket = session.webSocketTask(with: request)
@@ -40,6 +39,9 @@ class DomaWebSocket: NSObject, URLSessionWebSocketDelegate, ObservableObject {
     }
 
     func disconnect() {
+        pingTimer?.invalidate()
+        pingTimer = nil
+        isConnected = false
         webSocket?.cancel(with: .normalClosure, reason: nil)
         webSocket = nil
         domain = nil
@@ -78,17 +80,23 @@ class DomaWebSocket: NSObject, URLSessionWebSocketDelegate, ObservableObject {
                 }
                 self?.listen() // keep listening
             case .failure(let error):
-                print("[WS] receive error:", error)
-                // Reconnect after delay
-                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                    if let domain = self?.domain {
-                        self?.connect(domain: domain)
-                    }
-                }
+                print("[WS] receive error: \(error.localizedDescription)")
+                self?.isConnected = false
+                self?.reconnect()
             }
         }
     }
 
+    private func reconnect() {
+        guard !isConnected else { return }
+        print("[WS] Attempting to reconnect in 2 seconds...")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
+            if let domain = self?.domain {
+                self?.connect(domain: domain)
+            }
+        }
+    }
+    
     private func handleMessage(_ text: String) {
         guard let data = text.data(using: .utf8),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
@@ -110,6 +118,7 @@ class DomaWebSocket: NSObject, URLSessionWebSocketDelegate, ObservableObject {
 
         case "reload_groups":
             let convId = json["conversationId"] as? String ?? ""
+            print("[WS] Received reload_groups for conversation: \(convId)")
             DispatchQueue.main.async {
                 NotificationCenter.default.post(
                     name: .domaReloadGroups,
@@ -140,11 +149,18 @@ class DomaWebSocket: NSObject, URLSessionWebSocketDelegate, ObservableObject {
     // MARK: - Keepalive
 
     private func startPing() {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 30) { [weak self] in
-            guard let ws = self?.webSocket else { return }
+        pingTimer?.invalidate()
+        // Fire every 15s to keep Render instances alive
+        pingTimer = Timer.scheduledTimer(withTimeInterval: 15.0, repeats: true) { [weak self] _ in
+            guard let ws = self?.webSocket, self?.isConnected == true else { return }
             let ping = #"{"type":"ping"}"#
-            ws.send(.string(ping)) { _ in }
-            self?.startPing()
+            ws.send(.string(ping)) { error in
+                if let error = error {
+                    print("[WS] Ping failed: \(error.localizedDescription)")
+                    self?.isConnected = false
+                    self?.reconnect()
+                }
+            }
         }
     }
 
@@ -153,20 +169,20 @@ class DomaWebSocket: NSObject, URLSessionWebSocketDelegate, ObservableObject {
     func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask,
                     didOpenWithProtocol protocol: String?) {
         print("[WS] Connection opened")
+        DispatchQueue.main.async { [weak self] in
+            self?.isConnected = true
+        }
     }
 
     func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask,
                     didCloseWith closeCode: URLSessionWebSocketTask.CloseCode, reason: Data?) {
-        print("[WS] Connection closed")
-        // Auto-reconnect
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
-            if let domain = self?.domain {
-                self?.connect(domain: domain)
-            }
+        print("[WS] Connection closed with code: \(closeCode)")
+        DispatchQueue.main.async { [weak self] in
+            self?.isConnected = false
+            self?.reconnect()
         }
     }
 }
-
 // MARK: - Notification Names
 
 public extension Notification.Name {

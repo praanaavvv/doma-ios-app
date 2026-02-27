@@ -30,20 +30,8 @@ class WalletConnectXMTPSigner: SigningKey {
     func sign(_ message: String) async throws -> SignedData {
         print("[WCSigner] Requesting personal_sign from wallet...")
 
-        // Convert message to hex for personal_sign
-        let messageData = Data(message.utf8)
-        let hexMessage = "0x" + messageData.map { String(format: "%02x", $0) }.joined()
-
-        // Build the RPC request
-        let chainId = "eip155:1"
-        let blockchain = Blockchain(chainId)!
-
-        let request = try Request(
-            topic: session.topic,
-            method: "personal_sign",
-            params: AnyCodable([hexMessage, walletAddress]),
-            chainId: blockchain
-        )
+        // Let ReownAppKit format the request properly
+        // rather than manually building the RPC call.
 
         // Use Sign SDK to send request and wait for response via publisher
         return try await withCheckedThrowingContinuation { continuation in
@@ -73,7 +61,7 @@ class WalletConnectXMTPSigner: SigningKey {
             // Send the request — this will prompt the user in MetaMask
             Task {
                 do {
-                    try await AppKit.instance.request(params: request)
+                    try await AppKit.instance.request(.personal_sign(address: self.walletAddress, message: message))
                     print("[WCSigner] Sign request sent to wallet, waiting for approval...")
                     // Deep-link to the connected wallet so the user can see & approve the request
                     await MainActor.run {
