@@ -144,7 +144,7 @@ struct OnboardingView: View {
                             .font(.system(size: 14, weight: .medium))
                             .foregroundStyle(.red)
                     }
-                    .padding(.top, 4)
+                    .padding(.top, 16)
                 }
                 
                 // ❌ ERROR

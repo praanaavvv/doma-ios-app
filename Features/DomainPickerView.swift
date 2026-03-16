@@ -15,12 +15,10 @@ struct DomainPickerView: View {
         VStack(spacing: 14) {
             Spacer()
 
-            ZStack {
-                Circle().fill(.blue.opacity(0.08)).frame(width: 220, height: 220)
-                Image(systemName: "globe")
-                    .font(.system(size: 52, weight: .bold))
-                    .foregroundStyle(.blue)
-            }
+            OrbitHeaderView()
+                .frame(height: 320)
+                .padding(.top, 12)
+                .padding(.bottom, 16)
 
             Text("Multiple Domains Found!")
                 .font(.system(size: 26, weight: .bold))

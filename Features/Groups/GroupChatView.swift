@@ -42,20 +42,9 @@ struct GroupChatView: View {
                             showCreateGroup.toggle()
                         }
                     } label: {
-                        Image(systemName: showCreateGroup ? "xmark" : "plus")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(.white)
-                            .frame(width: 30, height: 30)
-                            .background(
-                                Circle()
-                                    .fill(LinearGradient(
-                                        colors: showCreateGroup
-                                            ? [Color(.systemGray3), Color(.systemGray3)]
-                                            : [.blue, .blue.opacity(0.7)],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    ))
-                            )
+                        Image(systemName: showCreateGroup ? "xmark.circle.fill" : "plus.circle.fill")
+                            .font(.system(size: 24))
+                            .foregroundColor(showCreateGroup ? Color(.systemGray3) : .blue)
                     }
                 }
             }
@@ -429,6 +418,7 @@ struct GroupDetailView: View {
             // Input bar
             inputBar
         }
+        .toolbar(.hidden, for: .tabBar)
         .background(Color(.systemGroupedBackground))
         .navigationTitle(group.metadata.name ?? "Group")
         .navigationBarTitleDisplayMode(.inline)
@@ -584,35 +574,40 @@ struct GroupDetailView: View {
     // MARK: - Input Bar
     
     private var inputBar: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 12) {
             TextField("Message…", text: $inputText, axis: .vertical)
-                .font(.system(size: 15))
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .background(Color(.systemBackground))
-                .cornerRadius(20)
+                .font(.system(size: 16))
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(Color(.systemGray6).opacity(0.8))
+                .clipShape(Capsule())
                 .lineLimit(1...4)
                 .submitLabel(.send)
                 .onSubmit {
                     Task { await sendMessage() }
                 }
-            
-            Button {
-                Task { await sendMessage() }
-            } label: {
-                Image(systemName: "arrow.up.circle.fill")
-                    .font(.system(size: 32))
-                    .foregroundStyle(
-                        inputText.isEmpty
-                        ? Color(.systemGray4)
-                        : Color.blue
-                    )
+
+            if xmtpService.isSending {
+                ProgressView().padding(.trailing, 2)
+            } else {
+                Button {
+                    Task { await sendMessage() }
+                } label: {
+                    ZStack {
+                        Circle()
+                            .fill(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? Color.gray.opacity(0.3) : Color.blue)
+                            .frame(width: 44, height: 44)
+                        Image(systemName: "arrow.up")
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundColor(.white)
+                    }
+                }
+                .disabled(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
-            .disabled(inputText.isEmpty || xmtpService.isSending)
         }
-        .padding(.horizontal, 12)
+        .padding(.horizontal, 16)
         .padding(.vertical, 8)
-        .background(.ultraThinMaterial)
+        .background(Color(.systemBackground))
     }
     
     // MARK: - Member Management Sheet

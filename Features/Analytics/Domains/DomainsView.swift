@@ -13,21 +13,7 @@ struct DomainsView: View {
         VStack(spacing: 0) {
             // MARK: - Header
             HStack {
-                // Profile avatar
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [.cyan, .blue],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: 44, height: 44)
-                    .overlay(
-                        Image(systemName: "person.fill")
-                            .font(.system(size: 20))
-                            .foregroundColor(.white.opacity(0.9))
-                    )
+                // Profile avatar removed (user request)
 
                 Spacer()
 

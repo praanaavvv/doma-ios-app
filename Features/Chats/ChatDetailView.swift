@@ -73,9 +73,13 @@ struct ChatDetailView: View {
             Divider()
 
             // Composer (uses XMTP service send)
-            HStack(spacing: 8) {
+            HStack(spacing: 12) {
                 TextField("Message \(conversation.domain)…", text: $inputText)
-                    .textFieldStyle(.roundedBorder)
+                    .font(.system(size: 16))
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background(Color(.systemGray6).opacity(0.8))
+                    .clipShape(Capsule())
                     .submitLabel(.send)
                     .onSubmit {
                         Task { await sendMessage() }
@@ -83,20 +87,27 @@ struct ChatDetailView: View {
 
                 if xmtpService.isSending {
                     ProgressView().padding(.trailing, 2)
+                } else {
+                    Button {
+                        Task { await sendMessage() }
+                    } label: {
+                        ZStack {
+                            Circle()
+                                .fill(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? Color.gray.opacity(0.3) : Color.blue)
+                                .frame(width: 44, height: 44)
+                            Image(systemName: "arrow.up")
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundColor(.white)
+                        }
+                    }
+                    .disabled(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isLoading)
                 }
-
-                Button {
-                    Task { await sendMessage() }
-                } label: {
-                    Image(systemName: "paperplane.fill")
-                        .rotationEffect(.degrees(45))
-                        .padding(8)
-                        .foregroundColor(.blue)
-                }
-                .disabled(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isLoading)
             }
-            .padding(.all, 12)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(Color(.systemBackground)) // ensure it covers anything behind it if scrolled
         }
+        .toolbar(.hidden, for: .tabBar)
         .navigationTitle(conversation.domain)
         .navigationBarTitleDisplayMode(.inline)
         .task { await openIfNeeded() }
