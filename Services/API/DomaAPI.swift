@@ -220,23 +220,21 @@ final class DomaAPI {
     }
 
     /// Add a member to a group conversation
-    @discardableResult
-    func addGroupMember(conversationId: String, actorDomain: String, memberDomain: String) async throws -> GroupMember {
-        struct Body: Encodable { let conversationId: String; let actorDomain: String; let domain: String }
-        return try await APIClient.shared.request(
-            "domains/group-conversations",
+    func addGroupMember(conversationId: String, requesterDomain: String, memberDomain: String) async throws {
+        struct Body: Encodable { let requesterDomain: String; let memberDomain: String }
+        try await APIClient.shared.requestVoid(
+            "domains/group-conversations/\(conversationId)/members",
             method: "POST",
-            body: Body(conversationId: conversationId, actorDomain: actorDomain, domain: memberDomain)
+            body: Body(requesterDomain: requesterDomain, memberDomain: memberDomain)
         )
     }
 
     /// Remove a member from a group conversation
-    func removeGroupMember(conversationId: String, actorDomain: String, memberDomain: String) async throws {
-        struct Body: Encodable { let conversationId: String; let actorDomain: String; let memberDomain: String }
+    func removeGroupMember(conversationId: String, requesterDomain: String, memberDomain: String) async throws {
         try await APIClient.shared.requestVoid(
-            "domains/group-conversations/members",
+            "domains/group-conversations/\(conversationId)/members/\(memberDomain)",
             method: "DELETE",
-            body: Body(conversationId: conversationId, actorDomain: actorDomain, memberDomain: memberDomain)
+            query: ["requesterDomain": requesterDomain]
         )
     }
 

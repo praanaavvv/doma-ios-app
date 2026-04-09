@@ -909,7 +909,7 @@ struct GroupDetailView: View {
         actionError = nil
         defer { isManagingRole = false }
         do {
-            try await DomaAPI.shared.removeGroupMember(conversationId: group.conversationId, actorDomain: activeDomain, memberDomain: domain)
+            try await DomaAPI.shared.removeGroupMember(conversationId: group.conversationId, requesterDomain: activeDomain, memberDomain: domain)
             await fetchMembers()
         } catch {
             actionError = "Failed to remove member: \(error.localizedDescription)"

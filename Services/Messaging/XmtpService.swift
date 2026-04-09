@@ -813,7 +813,7 @@ final class XmtpService: ObservableObject {
         // 4. Sync Backend for the new member
         try await DomaAPI.shared.addGroupMember(
             conversationId: group.id,
-            actorDomain: actorDomain,
+            requesterDomain: actorDomain,
             memberDomain: newMemberDomain
         )
         print("DEBUG: Added \(newMemberDomain) to group \(groupId) by actor \(actorDomain)")
