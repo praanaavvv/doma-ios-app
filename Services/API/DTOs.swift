@@ -123,6 +123,7 @@ struct GroupConversation: Decodable, Identifiable {
 
     struct GroupMetadata: Decodable {
         let admin: String?
+        let owner: String?
         let name: String?
     }
 }
@@ -133,4 +134,31 @@ struct GroupMember: Decodable, Identifiable {
     let domain: String
     let wallet: String?
     let name: String?
+    var role: MemberRole?
+}
+
+enum MemberRole: String, Decodable {
+    case owner
+    case admin
+    case member
+    
+    // Support case-insensitive decoding (e.g. "OWNER" from backend)
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let rawValue = try container.decode(String.self)
+        if let role = MemberRole(rawValue: rawValue.lowercased()) {
+            self = role
+        } else {
+            // Fallback for unknown roles to prevent decoding failure
+            self = .member
+        }
+    }
+}
+
+/// Admins info returned by GET /group-conversations/admins
+struct GroupAdminsResponse: Decodable {
+    let conversationId: String?
+    let owner: String?
+    let delegatedAdmins: [String]?
+    let admins: [String]?
 }

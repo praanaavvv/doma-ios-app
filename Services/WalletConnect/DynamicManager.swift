@@ -4,10 +4,6 @@ import ReownAppKit
 import WalletConnectSign
 
 final class DynamicManager: ObservableObject {
-    // MARK: - ⚠️ HARDCODED ADDRESS (Active for dev/testing — comment out for production WalletConnect flow)
-    static let hardcodedPrivateKey = "0xb8fe5146c4c021697ecd6f69d5f177642a6f3d6d467f275e9bb0911ffccbed59"
-    private static let hardcodedAddress = "0xF415aA099aFA6ED7aa58c804eA658440585bEe6d"
-    
     @Published var isReady: Bool = true
     @Published var isConnecting: Bool = false
     @Published var walletAddress: String?
@@ -16,11 +12,8 @@ final class DynamicManager: ObservableObject {
     private var bag = Set<AnyCancellable>()
 
     init() {
-        // ✅ DEV MODE: Use hardcoded address directly (commented out for prod)
-        // self.walletAddress = Self.hardcodedAddress
-        // print("[DynamicManager] Using hardcoded wallet address: \(Self.hardcodedAddress)")
-
-        // --- WalletConnect listeners (kept for production) ---
+        // --- WalletConnect listeners ---
+        
         // ✅ Listen to session settle events - this fires when wallet connection succeeds
         AppKit.instance.sessionSettlePublisher
             .receive(on: DispatchQueue.main)
@@ -90,6 +83,7 @@ final class DynamicManager: ObservableObject {
 
         // ✅ Recover existing sessions on init (for production WalletConnect flow)
         recoverExistingSessions()
+        
 
         print("[DynamicManager] Initialized")
     }
@@ -134,16 +128,24 @@ final class DynamicManager: ObservableObject {
         }
     }
 
-    /// Disconnect all active sessions
-    func disconnect() {
-        Task {
-            for session in AppKit.instance.getSessions() {
-                try? await AppKit.instance.disconnect(topic: session.topic)
+    func disconnect() async {
+        print("[DynamicManager] Disconnect requested...")
+        
+        // Iterate through known AppKit sessions and forcefully disconnect each
+        for session in AppKit.instance.getSessions() {
+            print("[DynamicManager] Disconnecting session topic: \(session.topic)")
+            do {
+                try await AppKit.instance.disconnect(topic: session.topic)
+            } catch {
+                print("[DynamicManager] Failed to disconnect topic \(session.topic): \(error)")
             }
-            await MainActor.run {
-                self.walletAddress = nil
-                self.isConnecting = false
-            }
+        }
+        
+        await MainActor.run {
+            self.walletAddress = nil
+            self.isConnecting = false
+            self.errorMessage = nil
+            print("[DynamicManager] Local state cleared.")
         }
     }
 

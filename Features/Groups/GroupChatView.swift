@@ -13,6 +13,20 @@ struct GroupChatView: View {
     @EnvironmentObject var session: AppSession
     @StateObject private var viewModel = GroupChatViewModel()
     @State private var showCreateGroup = false
+    @State private var searchText = ""
+    
+    // Filter groups by name or underlying domain
+    private var filteredGroups: [GroupConversation] {
+        let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
+            return viewModel.groupConversations
+        }
+        return viewModel.groupConversations.filter { group in
+            let nameMatch = (group.metadata.name ?? "").localizedCaseInsensitiveContains(trimmed)
+            let domainMatch = group.withDomain.localizedCaseInsensitiveContains(trimmed)
+            return nameMatch || domainMatch
+        }
+    }
     
     var body: some View {
         NavigationStack {
@@ -30,7 +44,20 @@ struct GroupChatView: View {
                 if viewModel.groupConversations.isEmpty {
                     emptyState
                 } else {
-                    groupList
+                    SearchPill(text: $searchText, onSubmit: {})
+                    
+                    if filteredGroups.isEmpty {
+                        VStack(spacing: 8) {
+                            Spacer()
+                            Text("No groups found")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                        }
+                        .frame(maxWidth: .infinity)
+                    } else {
+                        groupList
+                    }
                 }
             }
             .background(Color(.systemGroupedBackground))
@@ -208,7 +235,7 @@ struct GroupChatView: View {
     // MARK: - Group List
     
     private var groupList: some View {
-        List(viewModel.groupConversations, id: \.conversationId) { group in
+        List(filteredGroups, id: \.conversationId) { group in
             ZStack {
                 NavigationLink(destination: GroupDetailView(group: group, viewModel: viewModel)) {
                     EmptyView()
@@ -407,6 +434,27 @@ struct GroupDetailView: View {
     @State private var isAddingMember = false
     @State private var addMemberDomain = ""
     
+    // Role Actions State
+    @State private var isManagingRole = false
+    @State private var actionError: String? = nil
+    
+    private var currentUserRole: MemberRole? {
+        let activeDomain = (session.activeDomain ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !activeDomain.isEmpty else { return nil }
+        
+        return currentMembers.first(where: { 
+            $0.domain.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == activeDomain
+        })?.role
+    }
+    
+    private var canManageMembers: Bool {
+        currentUserRole == .owner || currentUserRole == .admin
+    }
+    
+    private var canManageAdmins: Bool {
+        currentUserRole == .owner
+    }
+    
     var body: some View {
         VStack(spacing: 0) {
             // Members bar
@@ -451,6 +499,13 @@ struct GroupDetailView: View {
         .onDisappear {
             xmtpService.stopStreaming()
         }
+        .onReceive(NotificationCenter.default.publisher(for: .domaReloadGroups)) { notification in
+            let convId = notification.userInfo?["conversationId"] as? String
+            if convId == nil || convId == group.conversationId {
+                print("[GroupDetailView] 🔄 Received reload event, fetching members...")
+                Task { await fetchMembers() }
+            }
+        }
     }
     
     // MARK: - Members Bar
@@ -470,6 +525,15 @@ struct GroupDetailView: View {
                             Text(member.domain)
                                 .font(.system(size: 11))
                                 .foregroundStyle(.tertiary)
+                        }
+                        if let role = member.role, role != .member {
+                            Text(role.rawValue.uppercased())
+                                .font(.system(size: 9, weight: .bold))
+                                .padding(.horizontal, 4)
+                                .padding(.vertical, 2)
+                                .background(role == .owner ? Color.orange.opacity(0.2) : Color.blue.opacity(0.2))
+                                .foregroundColor(role == .owner ? .orange : .blue)
+                                .cornerRadius(4)
                         }
                     }
                     .padding(.horizontal, 8)
@@ -615,6 +679,14 @@ struct GroupDetailView: View {
     private var memberManagementSheet: some View {
         NavigationStack {
             List {
+                if let error = actionError {
+                    Section {
+                        Text(error)
+                            .foregroundColor(.red)
+                            .font(.system(size: 13))
+                    }
+                }
+                
                 Section("Members") {
                     ForEach(currentMembers) { member in
                         HStack(spacing: 12) {
@@ -640,37 +712,93 @@ struct GroupDetailView: View {
                                         .foregroundStyle(.secondary)
                                 }
                             }
+                            
+                            Spacer()
+                            
+                            if let role = member.role, role != .member {
+                                Text(role.rawValue.uppercased())
+                                    .font(.system(size: 10, weight: .bold))
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 3)
+                                    .background(role == .owner ? Color.orange.opacity(0.2) : Color.blue.opacity(0.2))
+                                    .foregroundColor(role == .owner ? .orange : .blue)
+                                    .cornerRadius(6)
+                            }
+                            
+                                // Show management menu dots to everyone (but gate actions inside)
+                                if member.role != .owner && member.domain != session.activeDomain && !isManagingRole {
+                                    Menu {
+                                        if canManageMembers {
+                                            Button(role: .destructive) {
+                                                Task { await removeMember(domain: member.domain) }
+                                            } label: {
+                                                Label("Remove from group", systemImage: "trash")
+                                            }
+                                            
+                                            Divider()
+                                            
+                                            if member.role == .admin {
+                                                Button {
+                                                    Task { await demoteAdmin(domain: member.domain) }
+                                                } label: {
+                                                    Label("Remove from Admin", systemImage: "arrow.down.shield")
+                                                }
+                                            } else {
+                                                Button {
+                                                    Task { await promoteAdmin(domain: member.domain) }
+                                                } label: {
+                                                    Label("Make Admin", systemImage: "arrow.up.shield")
+                                                }
+                                            }
+                                        } else {
+                                            // Empty or limited view for regular members
+                                            Text("No actions available")
+                                                .font(.caption)
+                                                .foregroundColor(.secondary)
+                                        }
+                                    } label: {
+                                        Image(systemName: "ellipsis")
+                                            .font(.system(size: 20))
+                                            .foregroundColor(.secondary)
+                                            .padding(12)
+                                            .background(Color.black.opacity(0.001))
+                                            .contentShape(Rectangle())
+                                    }
+                                    .buttonStyle(.borderless)
+                                }
                         }
                     }
                 }
                 
-                Section("Add Member") {
-                    HStack(spacing: 10) {
-                        TextField("Domain…", text: $addMemberDomain)
-                            .autocapitalization(.none)
-                            .disableAutocorrection(true)
-                        
-                        Button {
-                            Task { await addMember() }
-                        } label: {
-                            if isAddingMember {
-                                ProgressView()
-                                    .scaleEffect(0.8)
-                            } else {
-                                Text("Add")
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .foregroundColor(.white)
-                                    .padding(.horizontal, 14)
-                                    .padding(.vertical, 7)
-                                    .background(
-                                        addMemberDomain.isEmpty
-                                        ? Color(.systemGray4)
-                                        : Color.blue
-                                    )
-                                    .cornerRadius(8)
+                if canManageMembers {
+                    Section("Add Member") {
+                        HStack(spacing: 10) {
+                            TextField("Domain…", text: $addMemberDomain)
+                                .autocapitalization(.none)
+                                .disableAutocorrection(true)
+                            
+                            Button {
+                                Task { await addMember() }
+                            } label: {
+                                if isAddingMember {
+                                    ProgressView()
+                                        .scaleEffect(0.8)
+                                } else {
+                                    Text("Add")
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundColor(.white)
+                                        .padding(.horizontal, 14)
+                                        .padding(.vertical, 7)
+                                        .background(
+                                            addMemberDomain.isEmpty
+                                            ? Color(.systemGray4)
+                                            : Color.blue
+                                        )
+                                        .cornerRadius(8)
+                                }
                             }
+                            .disabled(addMemberDomain.isEmpty || isAddingMember)
                         }
-                        .disabled(addMemberDomain.isEmpty || isAddingMember)
                     }
                 }
             }
@@ -678,6 +806,9 @@ struct GroupDetailView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
+                    if isManagingRole {
+                        ProgressView().padding(.trailing, 8)
+                    }
                     Button("Done") { showMemberSheet = false }
                 }
             }
@@ -697,15 +828,48 @@ struct GroupDetailView: View {
     
     func fetchMembers() async {
         do {
-            currentMembers = try await DomaAPI.shared.getGroupConversationMembers(conversationId: group.conversationId)
+            async let membersTask = DomaAPI.shared.getGroupConversationMembers(conversationId: group.conversationId)
+            async let adminsTask = DomaAPI.shared.getGroupAdmins(conversationId: group.conversationId)
+            
+            let (members, adminData) = try await (membersTask, adminsTask)
+            
+            // Reconcile roles using the source of truth from getGroupAdmins / metadata
+            self.currentMembers = members.map { member in
+                var updatedMember = member
+                let domain = member.domain.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+                
+                if let owner = adminData.owner?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(), domain == owner {
+                    updatedMember.role = .owner
+                } else if let admins = adminData.admins, admins.contains(where: { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == domain }) {
+                    updatedMember.role = .admin
+                } else {
+                    updatedMember.role = .member
+                }
+                return updatedMember
+            }
+            
+            // Diagnostic logging
+            print("[GroupDetailView] ✅ Fetched \(currentMembers.count) members. Admins list present: \(adminData.admins != nil)")
+            for m in currentMembers {
+                print("  - Domain: \(m.domain), Role: \(m.role?.rawValue ?? "nil"), CurrentUser: \(m.domain == (session.activeDomain ?? ""))")
+            }
+            print("[GroupDetailView] currentUserRole detected as: \(currentUserRole?.rawValue ?? "nil") (canManage: \(canManageMembers))")
+            
         } catch {
-            print("Error fetching members: \(error)")
+            print("[GroupDetailView] ❌ Error fetching members/admins: \(error)")
         }
     }
     
     func sendMessage() async {
-        guard !inputText.isEmpty else { return }
-        let text = inputText
+        let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return }
+        
+        // Ensure we are joined before sending
+        if xmtpService.activeConversationId != group.conversationId {
+            print("[GroupDetailView] Not joined yet. Forcing join before send...")
+            await joinGroup()
+        }
+        
         inputText = ""
         do {
             try await xmtpService.send(text: text)
@@ -723,16 +887,58 @@ struct GroupDetailView: View {
     }
     
     func addMember() async {
+        guard let activeDomain = session.activeDomain else { return }
         guard !addMemberDomain.isEmpty else { return }
         isAddingMember = true
+        actionError = nil
         defer { isAddingMember = false }
         
         do {
-            try await xmtpService.addMember(groupId: group.conversationId, newMemberDomain: addMemberDomain)
+            try await xmtpService.addMember(groupId: group.conversationId, newMemberDomain: addMemberDomain, actorDomain: activeDomain)
             addMemberDomain = ""
             await fetchMembers()
         } catch {
             print("Failed to add member: \(error)")
+            actionError = "Failed to add member: \(error.localizedDescription)"
+        }
+    }
+    
+    func removeMember(domain: String) async {
+        guard let activeDomain = session.activeDomain else { return }
+        isManagingRole = true
+        actionError = nil
+        defer { isManagingRole = false }
+        do {
+            try await DomaAPI.shared.removeGroupMember(conversationId: group.conversationId, actorDomain: activeDomain, memberDomain: domain)
+            await fetchMembers()
+        } catch {
+            actionError = "Failed to remove member: \(error.localizedDescription)"
+        }
+    }
+    
+    func promoteAdmin(domain: String) async {
+        guard let activeDomain = session.activeDomain else { return }
+        isManagingRole = true
+        actionError = nil
+        defer { isManagingRole = false }
+        do {
+            try await DomaAPI.shared.promoteGroupAdmin(conversationId: group.conversationId, actorDomain: activeDomain, targetAdminDomain: domain)
+            await fetchMembers()
+        } catch {
+            actionError = "Failed to promote admin: \(error.localizedDescription)"
+        }
+    }
+    
+    func demoteAdmin(domain: String) async {
+        guard let activeDomain = session.activeDomain else { return }
+        isManagingRole = true
+        actionError = nil
+        defer { isManagingRole = false }
+        do {
+            try await DomaAPI.shared.demoteGroupAdmin(conversationId: group.conversationId, ownerDomain: activeDomain, adminDomain: domain)
+            await fetchMembers()
+        } catch {
+            actionError = "Failed to demote admin: \(error.localizedDescription)"
         }
     }
 }

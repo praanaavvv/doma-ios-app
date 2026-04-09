@@ -174,10 +174,9 @@ struct SearchPill: View {
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: "magnifyingglass")
-            
                 .foregroundStyle(.secondary)
 
-            TextField("Search here…", text: $text)
+            TextField("Search domain…", text: $text)
                 .textInputAutocapitalization(.never)
                 .disableAutocorrection(true)
                 .onSubmit {
@@ -186,9 +185,8 @@ struct SearchPill: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .background(
-            Capsule()
-                .fill(Color(.systemGray6))
-        )
+        .background(Color(.systemGray6))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .padding(.horizontal, 16)
     }
 }

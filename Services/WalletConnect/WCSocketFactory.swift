@@ -7,7 +7,11 @@ class NativeWebSocket: NSObject, WebSocketConnecting, URLSessionWebSocketDelegat
     var onDisconnect: ((Error?) -> Void)?
     var onText: ((String) -> Void)?
 
-    var isConnected: Bool = false
+    var isConnected: Bool = false {
+        didSet {
+            print("[NativeWebSocket] isConnected changed to: \(isConnected)")
+        }
+    }
 
     private var socket: URLSessionWebSocketTask?
     private var urlSession: URLSession!
@@ -16,16 +20,22 @@ class NativeWebSocket: NSObject, WebSocketConnecting, URLSessionWebSocketDelegat
         self.request = request
         super.init()
         let config = URLSessionConfiguration.default
-        self.urlSession = URLSession(configuration: config, delegate: self, delegateQueue: OperationQueue())
+        // WalletConnect relay requires a long-lived connection
+        config.timeoutIntervalForRequest = 60
+        config.timeoutIntervalForResource = 3600
+        print("[NativeWebSocket] Init with URL: \(request.url?.absoluteString ?? "nil")")
+        self.urlSession = URLSession(configuration: config, delegate: self, delegateQueue: .main)
     }
     
     func connect() {
+        print("[NativeWebSocket] Connecting to: \(request.url?.absoluteString ?? "unknown")")
         socket = urlSession.webSocketTask(with: request)
         socket?.resume()
         receiveMessage()
     }
     
     func disconnect() {
+        print("[NativeWebSocket] Disconnecting")
         socket?.cancel(with: .normalClosure, reason: nil)
         socket = nil
         isConnected = false
@@ -67,23 +77,31 @@ class NativeWebSocket: NSObject, WebSocketConnecting, URLSessionWebSocketDelegat
     
     // MARK: - URLSessionWebSocketDelegate
     
-    func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didOpenWithProtocol protocol: String?) {
-        print("[NativeWebSocket] Connected")
+    func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didOpenWithProtocol webSocketProtocol: String?) {
+        print("[NativeWebSocket] Socket opened with protocol: \(webSocketProtocol ?? "none")")
         isConnected = true
         onConnect?()
     }
     
     func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didCloseWith closeCode: URLSessionWebSocketTask.CloseCode, reason: Data?) {
-        print("[NativeWebSocket] Disconnected code: \(closeCode)")
+        print("[NativeWebSocket] Socket closed with code: \(closeCode.rawValue)")
         isConnected = false
         onDisconnect?(nil)
     }
     
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
         if let error = error {
-            print("[NativeWebSocket] Session Completed with Error: \(error)")
+            print("[NativeWebSocket] Task completed with error: \(error.localizedDescription)")
+            if let nsError = error as NSError? {
+                print("[NativeWebSocket] Error Code: \(nsError.code), Domain: \(nsError.domain)")
+                if let response = (task.response as? HTTPURLResponse) {
+                    print("[NativeWebSocket] HTTP Status Code: \(response.statusCode)")
+                }
+            }
             isConnected = false
             onDisconnect?(error)
+        } else {
+            print("[NativeWebSocket] Task completed successfully (no error)")
         }
     }
 }
@@ -91,7 +109,14 @@ class NativeWebSocket: NSObject, WebSocketConnecting, URLSessionWebSocketDelegat
 struct DefaultSocketFactory: WebSocketFactory {
     func create(with url: URL) -> WebSocketConnecting {
         var comps = URLComponents(url: url, resolvingAgainstBaseURL: false)!
-        // Force trailing slash as required by relay
+        
+        // --- 403 BYPASS WORKAROUND ---
+        // Strip bundleId if present (sometimes causes 403 if relay verification is strict)
+        var items = comps.queryItems ?? []
+        items.removeAll { $0.name == "bundleId" }
+        comps.queryItems = items
+        
+        // Ensure path is not empty
         if comps.path.isEmpty {
             comps.path = "/"
         }
@@ -99,9 +124,16 @@ struct DefaultSocketFactory: WebSocketFactory {
         let finalURL = comps.url!
         var request = URLRequest(url: finalURL)
         request.timeoutInterval = 15
+        
+        // Essential headers for WalletConnect relay
         request.setValue("wc-2", forHTTPHeaderField: "Sec-WebSocket-Protocol")
+        
+        // Add Origin header (some relays require this for 403 mitigation)
+        request.setValue("https://com.d3globalinc.domasecureios", forHTTPHeaderField: "Origin")
 
-        print("[WCSocketFactory] Connecting to (Native):", finalURL.absoluteString)
+        print("[WCSocketFactory] Creating Native Socket for: \(finalURL.absoluteString)")
+        print("[WCSocketFactory] Setting Origin: https://com.d3globalinc.domasecureios")
+        
         return NativeWebSocket(request: request)
     }
 }

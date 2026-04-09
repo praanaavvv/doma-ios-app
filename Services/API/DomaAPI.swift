@@ -193,12 +193,13 @@ final class DomaAPI {
     }
 
     /// Upsert a domain group conversation — called once per member domain
-    func upsertDomainGroupConversation(domain: String, conversationId: String, groupName: String? = nil) async throws {
-        struct Body: Encodable { let domain: String; let conversationId: String; let groupName: String? }
-        try await APIClient.shared.requestVoid(
+    @discardableResult
+    func upsertDomainGroupConversation(conversationId: String, memberDomain: String, actorDomain: String, groupName: String? = nil) async throws -> GroupMember {
+        struct Body: Encodable { let conversationId: String; let domain: String; let actorDomain: String; let groupName: String? }
+        return try await APIClient.shared.request(
             "domains/group-conversations",
             method: "POST",
-            body: Body(domain: domain, conversationId: conversationId, groupName: groupName)
+            body: Body(conversationId: conversationId, domain: memberDomain, actorDomain: actorDomain, groupName: groupName)
         )
     }
 
@@ -210,11 +211,59 @@ final class DomaAPI {
         )
     }
 
-    /// Fetch group conversation members — returns [{domain, wallet, name}]
+    /// Fetch group conversation members — returns [{domain, wallet, name, role}]
     func getGroupConversationMembers(conversationId: String) async throws -> [GroupMember] {
         try await APIClient.shared.request(
             "domains/group-conversations/members",
             query: ["conversationId": conversationId]
+        )
+    }
+
+    /// Add a member to a group conversation
+    @discardableResult
+    func addGroupMember(conversationId: String, actorDomain: String, memberDomain: String) async throws -> GroupMember {
+        struct Body: Encodable { let conversationId: String; let actorDomain: String; let domain: String }
+        return try await APIClient.shared.request(
+            "domains/group-conversations",
+            method: "POST",
+            body: Body(conversationId: conversationId, actorDomain: actorDomain, domain: memberDomain)
+        )
+    }
+
+    /// Remove a member from a group conversation
+    func removeGroupMember(conversationId: String, actorDomain: String, memberDomain: String) async throws {
+        struct Body: Encodable { let conversationId: String; let actorDomain: String; let memberDomain: String }
+        try await APIClient.shared.requestVoid(
+            "domains/group-conversations/members",
+            method: "DELETE",
+            body: Body(conversationId: conversationId, actorDomain: actorDomain, memberDomain: memberDomain)
+        )
+    }
+
+    /// Get group admins
+    func getGroupAdmins(conversationId: String) async throws -> GroupAdminsResponse {
+        try await APIClient.shared.request(
+            "domains/group-conversations/admins",
+            query: ["conversationId": conversationId]
+        )
+    }
+
+    /// Promote member to admin
+    func promoteGroupAdmin(conversationId: String, actorDomain: String, targetAdminDomain: String) async throws {
+        struct Body: Encodable { let domain: String; let adminDomain: String }
+        try await APIClient.shared.requestVoid(
+            "domains/group-conversations/\(conversationId)/admins",
+            method: "POST",
+            body: Body(domain: actorDomain, adminDomain: targetAdminDomain)
+        )
+    }
+
+    /// Demote delegated admin
+    func demoteGroupAdmin(conversationId: String, ownerDomain: String, adminDomain: String) async throws {
+        try await APIClient.shared.requestVoid(
+            "domains/group-conversations/\(conversationId)/admins/\(adminDomain)",
+            method: "DELETE",
+            query: ["domain": ownerDomain]
         )
     }
 

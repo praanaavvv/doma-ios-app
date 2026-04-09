@@ -28,10 +28,26 @@ struct InstallationsView: View {
                         .foregroundColor(.secondary)
                 } else {
                     ForEach(installations, id: \.self) { info in
+                        let isCurrent = info.id == xmtp.currentInstallationId
+                        
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Device ID")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                            HStack {
+                                Text("Device ID")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                
+                                if isCurrent {
+                                    Text("This Device")
+                                        .font(.caption2)
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(.white)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 2)
+                                        .background(Color.blue)
+                                        .clipShape(Capsule())
+                                }
+                            }
+                            
                             Text(info.id)
                                 .font(.system(.body, design: .monospaced))
                                 .lineLimit(1)
@@ -43,10 +59,12 @@ struct InstallationsView: View {
                         }
                         .padding(.vertical, 4)
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                            Button(role: .destructive) {
-                                Task { await revokeSingle(info.id) }
-                            } label: {
-                                Label("Revoke", systemImage: "trash")
+                            if !isCurrent {
+                                Button(role: .destructive) {
+                                    Task { await revokeSingle(info.id) }
+                                } label: {
+                                    Label("Revoke", systemImage: "trash")
+                                }
                             }
                         }
                     }
@@ -54,7 +72,7 @@ struct InstallationsView: View {
             } header: {
                 Text("Active Devices")
             } footer: {
-                Text("Swipe left on a device to revoke its access to your XMTP messages.")
+                Text("Swipe left on a device to revoke its access. You cannot revoke your current device.")
             }
         }
         .navigationTitle("XMTP Devices")

@@ -53,11 +53,15 @@ class AppViewModel: ObservableObject {
 
 
         // Pseudocode if your SDK allows passing host
+        print("[AppBootStrap] Configuring Networking with ProjectID: \(Env.wcProjectId)")
         Networking.configure(
-            relayHost: Env.wcRelayHost, groupIdentifier: "group.com.domasecure.app",
-            projectId: Env.wcProjectId,           // ensure .com
-            socketFactory: DefaultSocketFactory()
+            relayHost: Env.wcRelayHost,
+            groupIdentifier: "group.com.d3globalinc.domasecureios",
+            projectId: Env.wcProjectId,
+            socketFactory: DefaultSocketFactory(),
+            socketConnectionType: .automatic
         )
+        print("[AppBootStrap] Networking configured.")
 
         // Create Session Params
         let chains: [Blockchain] = [Blockchain("eip155:1")!] // Ethereum Mainnet

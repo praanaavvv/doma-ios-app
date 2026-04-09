@@ -136,8 +136,16 @@ struct ChatDetailView: View {
     private func sendMessage() async {
         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
+        
+        // If we don't have an active conversation yet, try to join it now
+        if xmtpService.activeConversationId != conversation.id {
+            print("[ChatDetail] Chat not joined yet. Attempting to join before sending...")
+            await openIfNeeded()
+        }
+        
         print("[ChatDetail] Sending message: '\(text)' to conversation: \(conversation.id)")
-        print("[ChatDetail] XMTP ready: \(xmtpService.isReady), activeConvoId: \(xmtpService.activeConversationId ?? "nil"), useMock: \(xmtpService.useMock)")
+        print("[ChatDetail] XMTP ready: \(xmtpService.isReady), activeConvoId: \(xmtpService.activeConversationId ?? "nil")")
+        
         do {
             try await xmtpService.send(text: text)
             print("[ChatDetail] ✅ Message sent successfully")

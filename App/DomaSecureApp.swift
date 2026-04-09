@@ -1,5 +1,6 @@
 import SwiftUI
 import ReownAppKit
+import WalletConnectNetworking
 
 @main
 struct DomaSecureApp: App {
@@ -8,6 +9,8 @@ struct DomaSecureApp: App {
     @StateObject private var session = AppSession()
     @StateObject private var xmtpService = XmtpService()
     @StateObject private var themeManager = ThemeManager()
+    
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
         WindowGroup {
@@ -21,33 +24,29 @@ struct DomaSecureApp: App {
                 .onOpenURL { url in
                     handleDeeplink(url)
                 }
-                // Initialize XMTP explicitly when the user taps "Sign & Connect" across the app
-                // .onChange(of: dynamic.walletAddress) { newAddress in
-                //     guard let addr = newAddress, !addr.isEmpty else { return }
-                //     initXmtp(for: addr)
-                // }
-                // Also init XMTP on launch if wallet was recovered from previous session
-                // .task {
-                //     if let addr = dynamic.walletAddress, !addr.isEmpty {
-                //         initXmtp(for: addr)
-                //     }
-                // }
+                // XMTP is initialized explicitly during onboarding (after profile check).
+                // On app relaunch, recover XMTP only if the user is already fully authenticated.
+                .task {
+                    // Ensure networking is connected as soon as app starts
+                    try? await Networking.instance.connect()
+                    
+                    if let addr = dynamic.walletAddress, !addr.isEmpty, session.isAuthed {
+                        initXmtp(for: addr)
+                    }
+                }
+                .onChange(of: scenePhase) { newPhase in
+                    if newPhase == .active {
+                        print("[App] Foreground - Ensuring relay connection...")
+                        Task {
+                            try? await Networking.instance.connect()
+                        }
+                    }
+                }
         }
     }
 
     private func initXmtp(for walletAddress: String) {
         guard !xmtpService.isReady else { return } // Already initialized
-        print("[App] Wallet address: \(walletAddress), initializing XMTP with hardcoded key...")
-
-        Task {
-            // do {
-            //     // ✅ DEV MODE: Use hardcoded private key directly (no wallet approval needed)
-            //     try await xmtpService.initializeWithPrivateKey(DynamicManager.hardcodedPrivateKey)
-            //     print("[App] ✅ XMTP initialized with hardcoded key")
-            // } catch {
-            //     print("[App] ❌ XMTP init failed: \(error)")
-            // }
-        }
 
         // --- PRODUCTION: WalletConnect signer ---
         print("[App] Wallet connected: \(walletAddress), initializing XMTP via WalletConnect...")
@@ -68,9 +67,9 @@ struct DomaSecureApp: App {
             }
         }
     }
-}
 
-private func handleDeeplink(_ url: URL) {
-    print("[App] Deep link received: \(url)")
-    AppKit.instance.handleDeeplink(url)
+    private func handleDeeplink(_ url: URL) {
+        print("[App] Deep link received: \(url)")
+        AppKit.instance.handleDeeplink(url)
+    }
 }

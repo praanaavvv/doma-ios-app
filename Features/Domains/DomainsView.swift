@@ -58,10 +58,10 @@ struct DomainsView: View {
                     Text("Add new domain")
                         .font(.system(size: 15, weight: .medium))
                 }
-                .foregroundColor(.primary)
+                .foregroundColor(.blue)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
-                .background(Color(.secondarySystemGroupedBackground))
+                .background(Color.blue.opacity(0.1))
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
             .padding(.horizontal, 20)
@@ -188,7 +188,7 @@ struct DomainRowCard: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
                 // Use a green color if connected, else blue
-                .background(isActive ? Color(hex: "2ABC7E") : Color.blue)
+                .background(isActive ? Color(hex: "28DC0F") : Color.blue)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
             }
             .buttonStyle(.plain)
@@ -196,8 +196,12 @@ struct DomainRowCard: View {
             .padding(.horizontal, 16)
             .padding(.bottom, 16)
         }
-        .background(Color(.secondarySystemGroupedBackground))
+        .background(Color(.systemGray6).opacity(0.6))
         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(Color.primary.opacity(0.05), lineWidth: 1)
+        )
     }
 
     private var domainIdentifier: String {

@@ -32,13 +32,7 @@ final class APIClient {
            let url = URL(string: str), !str.isEmpty {
             return url
         }
-        #if targetEnvironment(simulator)
-        // Simulator can use localhost directly
-        return URL(string: "https://xmtp-messaging-domain.onrender.com")!
-        #else
-        // On device, set API_BASE_URL in Info.plist to your machine's IP: http://<YOUR_MAC_IP>:8080
-        return URL(string: "https://xmtp-messaging-domain.onrender.com")!
-        #endif
+        return URL(string: "https://dapi.sriyush.me")!
     }()
 
     private init() {}

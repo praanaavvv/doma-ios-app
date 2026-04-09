@@ -2,6 +2,8 @@ import SwiftUI
 
 struct SettingsView: View {
     @EnvironmentObject private var session: AppSession
+    @EnvironmentObject private var dynamic: DynamicManager
+    @EnvironmentObject private var xmtp: XmtpService
     @Environment(\.openURL) private var openURL
     
     @State private var profileStatus: ProfileStatus = .loading
@@ -110,6 +112,7 @@ struct SettingsView: View {
                             }
                             .padding(.vertical, 12)
                             .padding(.horizontal, 14)
+                            .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                         .overlay(
@@ -139,35 +142,7 @@ struct SettingsView: View {
                             }
                             .padding(.vertical, 12)
                             .padding(.horizontal, 14)
-                        }
-                        .buttonStyle(.plain)
-                        .overlay(
-                            Divider().padding(.leading, 60),
-                            alignment: .bottom
-                        )
-                        NavigationLink {
-                            AnalyticsView()
-                        } label: {
-                            HStack(spacing: 12) {
-                                Circle()
-                                    .fill(Color(.systemGray6))
-                                    .frame(width: 34, height: 34)
-                                    .overlay(
-                                        Image(systemName: "chart.bar.fill")
-                                            .foregroundStyle(.secondary)
-                                    )
-
-                                Text("Analytics")
-                                    .font(.system(size: 15, weight: .semibold))
-                                    .foregroundStyle(.primary)
-
-                                Spacer()
-
-                                Image(systemName: "chevron.right")
-                                    .foregroundStyle(.tertiary)
-                            }
-                            .padding(.vertical, 12)
-                            .padding(.horizontal, 14)
+                            .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                         .overlay(
@@ -197,20 +172,13 @@ struct SettingsView: View {
                             }
                             .padding(.vertical, 12)
                             .padding(.horizontal, 14)
+                            .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
-                        .overlay(
-                            Divider().padding(.leading, 60),
-                            alignment: .bottom
-                        )
-                        SettingsRow(icon: "bell", title: "Notifications")
                     }
                     .padding(.horizontal, 16)
 
                     SettingsSection(title: "Domains") {
-                        SettingsRow(icon: "globe", title: "Manage Domains")
-                        SettingsRow(icon: "wrench.and.screwdriver", title: "DNS Setup Help")
-                        
                         Button {
                             Task { await syncProfile() }
                         } label: {
@@ -235,6 +203,7 @@ struct SettingsView: View {
                             }
                             .padding(.vertical, 12)
                             .padding(.horizontal, 14)
+                            .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                         .disabled(isSyncing)
@@ -271,13 +240,21 @@ struct SettingsView: View {
 
                     // Logout
                     Button(role: .destructive) {
-                        // UI-only for now
+                        Task {
+                            xmtp.logout()
+                            await dynamic.disconnect()
+                            session.walletAddress = nil
+                            session.activeDomain = nil
+                            session.domains = []
+                            session.isAuthed = false
+                        }
                     } label: {
                         Text("Log out")
                             .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(.red)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
-                            .background(Color(.systemGray6).opacity(0.7))
+                            .background(Color.red.opacity(0.1))
                             .clipShape(RoundedRectangle(cornerRadius: 18))
                     }
                     .buttonStyle(.plain)
@@ -415,9 +392,6 @@ private struct ProfileCard: View {
             }
 
             Spacer()
-
-            Image(systemName: "chevron.right")
-                .foregroundStyle(.tertiary)
         }
         .padding(14)
         .background(Color(.systemGray6).opacity(0.7))
@@ -478,6 +452,7 @@ private struct SettingsRow: View {
             }
             .padding(.vertical, 12)
             .padding(.horizontal, 14)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .overlay(
@@ -514,6 +489,7 @@ private struct SettingsLinkRow: View {
             }
             .padding(.vertical, 12)
             .padding(.horizontal, 14)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .overlay(

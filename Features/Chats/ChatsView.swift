@@ -22,13 +22,20 @@ struct ChatsView: View {
     @State private var isConnectingXmtp = false
     @State private var xmtpError: String?
 
-    // Filter conversations by domain or preview text
     private var filteredConversations: [ConversationItem] {
         let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return conversations }
+        guard !trimmed.isEmpty else {
+            return conversations.filter { $0.name?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false }
+        }
         return conversations.filter { convo in
-            convo.domain.localizedCaseInsensitiveContains(trimmed)
-            || (convo.preview ?? "").localizedCaseInsensitiveContains(trimmed)
+            let hasValidName = convo.name?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+            guard hasValidName else { return false }
+            
+            let matchDomain = convo.domain.localizedCaseInsensitiveContains(trimmed)
+            let matchName = (convo.name ?? "").localizedCaseInsensitiveContains(trimmed)
+            let matchPreview = (convo.preview ?? "").localizedCaseInsensitiveContains(trimmed)
+            
+            return matchDomain || matchName || matchPreview
         }
     }
 
@@ -221,34 +228,19 @@ struct ChatsView: View {
         isConnectingXmtp = true
         xmtpError = nil
 
-        Task {
-            // do {
-            //     // ✅ DEV MODE: Use hardcoded private key (no wallet approval needed)
-            //     try await xmtp.initializeWithPrivateKey(DynamicManager.hardcodedPrivateKey)
-            //     await MainActor.run {
-            //         isConnectingXmtp = false
-            //         print("[Chats] ✅ XMTP connected with hardcoded key")
-            //     }
-            // } catch {
-            //     await MainActor.run {
-            //         isConnectingXmtp = false
-            //         xmtpError = "Failed to connect: \(error.localizedDescription)"
-            //         print("[Chats] ❌ XMTP connect failed: \(error)")
-            //     }
-            // }
-        }
-
         // --- PRODUCTION: WalletConnect signer ---
         let sessions = AppKit.instance.getSessions()
         guard let activeSession = sessions.first else {
             xmtpError = "No active wallet session. Please reconnect your wallet."
+            isConnectingXmtp = false
             return
         }
         Task {
             do {
                 try await xmtp.initializeWithWalletConnect(
                     address: walletAddress,
-                    session: activeSession
+                    session: activeSession,
+                    isManual: true
                 )
                 await MainActor.run {
                     isConnectingXmtp = false
@@ -320,27 +312,12 @@ struct ChatsView: View {
                 recipientAddress: ownerAddress
             )
 
-            // 3. Build local ConversationItem
-            let newConversation = ConversationItem(
-                id: conversationId,
-                domain: trimmed,
-                name: nil,
-                status: "active",
-                lastActivity: ISO8601DateFormatter().string(from: Date()),
-                createdAt: ISO8601DateFormatter().string(from: Date()),
-                unreadCount: 0,
-                preview: "New conversation"
-            )
+            // 3. Fetch updated conversations from backend
+            await loadConversations()
 
             await MainActor.run {
                 self.isSearchingDomain = false
                 self.searchText = ""
-                // Insert at top or update
-                if let index = conversations.firstIndex(where: { $0.id == newConversation.id }) {
-                    conversations[index] = newConversation
-                } else {
-                    conversations.insert(newConversation, at: 0)
-                }
             }
         } catch {
             print("[Chats] ❌ startChatWithDomain error: \(error)")
@@ -447,9 +424,6 @@ struct ChatRowView: View {
                 } else {
                     Text(conversation.domain)
                         .font(.system(size: 16, weight: .semibold))
-                    Text("Name is: \(conversation.name ?? "nil")")
-                        .font(.caption)
-                        .foregroundStyle(.red)
                 }
 
                 Text(conversation.preview ?? "No messages yet")

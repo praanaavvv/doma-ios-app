@@ -165,7 +165,7 @@ private struct HeatmapCard: View {
     }
 
     private func color(for count: Int) -> Color {
-        guard count > 0 else { return Color.white.opacity(0.05) }
+        guard count > 0 else { return Color.primary.opacity(0.05) }
         let ratio = Double(count) / maxActivity
         switch ratio {
         case 0..<0.25:  return Color.blue.opacity(0.3)

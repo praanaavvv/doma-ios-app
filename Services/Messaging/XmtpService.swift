@@ -30,6 +30,7 @@ struct ChatMessage: Identifiable, Equatable {
 
 enum XmtpServiceError: LocalizedError {
     case notConnected
+    case conversationNotInitialized
     case missingSigner
     case missingInboxId
     case generic(String)
@@ -37,7 +38,9 @@ enum XmtpServiceError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .notConnected:
-            return "XMTP client is not connected."
+            return "XMTP client is not initialized or signed in."
+        case .conversationNotInitialized:
+            return "The conversation has not been fully initialized yet. Join it first."
         case .missingSigner:
             return "No signer available for XMTP."
         case .missingInboxId:
@@ -54,6 +57,9 @@ final class XmtpService: ObservableObject {
 
     @Published private(set) var isConnecting: Bool = false
     @Published private(set) var isReady: Bool = false
+
+    /// The installation ID of the XMTP client on THIS device
+    @Published private(set) var currentInstallationId: String?
 
     /// The Doma conversation.id currently open in the UI
     @Published private(set) var activeConversationId: String?
@@ -134,73 +140,11 @@ final class XmtpService: ObservableObject {
         #endif
     }
     
-    /// Initialize with a hardcoded private key (Testing/Dev mode)
-    func initializeWithPrivateKey(_ keyHex: String) async throws {
-        print("DEBUG: [XmtpService] initializeWithPrivateKey called.")
-        
-        #if canImport(XMTPiOS)
-        if client != nil {
-            print("DEBUG: [XmtpService] Client already exists. Returning.")
-            isReady = true
-            return
-        }
-        
-        isConnecting = true
-        defer { isConnecting = false }
-        
-        // 1. Get or Create a DB Encryption Key for this hardcoded user
-        // Note: For production, store this in Keychain. For this hardcoded test, UserDefaults is fine.
-        let udKey = "d_db_key_hardcoded"
-        var dbKey: Data
-        if let stored = UserDefaults.standard.data(forKey: udKey) {
-            dbKey = stored
-            print("DEBUG: [XmtpService] Using existing DB key. (Bytes: \(dbKey.count))")
-        } else {
-            dbKey = Data.random(length: 32)
-            UserDefaults.standard.set(dbKey, forKey: udKey)
-            print("DEBUG: [XmtpService] Generated new DB key. (Bytes: \(dbKey.count))")
-        }
-        
-        print("DEBUG: [XmtpService] Processing hex key (Length: \(keyHex.count))...")
-        let keyData = Data(hex: keyHex)
-        print("DEBUG: [XmtpService] Key Data bytes: \(keyData.count)")
-        
-        if keyData.count != 32 {
-             print("DEBUG: [XmtpService] WARNING: Key data length is \(keyData.count), expected 32 bytes for typical private key.")
-        }
-
-        print("DEBUG: [XmtpService] Creating PrivateKey object...")
-        let keys: PrivateKey
-        do {
-            keys = try PrivateKey(keyData)
-            print("DEBUG: [XmtpService] PrivateKey created successfully.")
-        } catch {
-            print("DEBUG: [XmtpService] Failed to create PrivateKey: \(error)")
-            throw error
-        }
-
-        // 2. Pass the dbEncryptionKey to enable persistence
-        let options = ClientOptions(
-            api: .init(env: .dev),
-            dbEncryptionKey: dbKey
-        )
-        
-        print("DEBUG: [XmtpService] Creating XMTP Client (env: dev)...")
-        do {
-            self.client = try await Client.create(account: keys, options: options)
-            self.isReady = true
-            self.useMock = false
-        } catch {
-             print("DEBUG: [XmtpService] Client.create FAILED: \(error)")
-             throw error
-        }
-        #else
-        print("DEBUG: [XmtpService] XMTP SDK not available (canImport failed).")
-        #endif
-    }
 
     /// Initialize XMTP using a WalletConnect signer (prompts user in wallet to approve)
-    func initializeWithWalletConnect(address: String, session: WalletConnectSign.Session) async throws {
+    /// Initialize XMTP using a WalletConnect signer (prompts user in wallet to approve)
+    /// - Parameter isManual: If true, this was an explicit user tap; perform maintenance (like revoking old devices).
+    func initializeWithWalletConnect(address: String, session: WalletConnectSign.Session, isManual: Bool = false) async throws {
         print("DEBUG: [XmtpService] initializeWithWalletConnect called for \(address)")
 
         #if canImport(XMTPiOS)
@@ -248,8 +192,13 @@ final class XmtpService: ObservableObject {
             dbEncryptionKey: dbKey
         )
 
+        // Installation ID UserDefaults key (lives alongside the DB key)
+        let installIdUDKey = "d_install_id_wc_\(address.lowercased())"
+
         // 5. Attempt to build or create the client
         do {
+            var isNewInstallation = false
+            
             if hasExistingDBKey {
                 print("DEBUG: [XmtpService] Found existing DB key for \(address). Attempting to build Client from local DB...")
                 do {
@@ -265,6 +214,7 @@ final class XmtpService: ObservableObject {
                         dbKey: &dbKey,
                         dbKeyUDKey: udKey
                     )
+                    isNewInstallation = true
                 }
             } else {
                 print("DEBUG: [XmtpService] No existing DB key found. Calling Client.create...")
@@ -273,27 +223,53 @@ final class XmtpService: ObservableObject {
                     dbKey: &dbKey,
                     dbKeyUDKey: udKey
                 )
+                isNewInstallation = true
             }
             
-            // 6. Enforce Max 7 Installations
+            // 6. Identify & persist THIS device's installation ID
             do {
                 print("DEBUG: [XmtpService] Checking active installations...")
-                // In XMTP v3 iOS SDK, inboxState is a method on Client, not PrivatePreferences
-                let inboxState = try await self.client?.inboxState(refreshFromNetwork: true)
+                // Refresh from network only for NEW installations or manual recovery
+                let refresh = isNewInstallation || isManual
+                let inboxState = try await self.client?.inboxState(refreshFromNetwork: refresh)
                 if let installations = inboxState?.installations {
                     print("DEBUG: [XmtpService] Found \(installations.count) active installations.")
                     
-                    if installations.count > 7 {
+                    if isNewInstallation {
+                        // We just created a new installation — the newest one is ours
+                        let newest = installations.sorted { ($0.createdAt ?? Date.distantPast) > ($1.createdAt ?? Date.distantPast) }.first
+                        if let myId = newest?.id {
+                            UserDefaults.standard.set(myId, forKey: installIdUDKey)
+                            self.currentInstallationId = myId
+                            print("DEBUG: [XmtpService] Stored new installation ID: \(myId)")
+                        }
+                    } else {
+                        // Built from existing DB — read back the stored installation ID
+                        if let storedId = UserDefaults.standard.string(forKey: installIdUDKey) {
+                            self.currentInstallationId = storedId
+                            print("DEBUG: [XmtpService] Restored installation ID from storage: \(storedId)")
+                        } else {
+                            // Fallback: no stored ID (upgrade from older version), pick the newest
+                            let newest = installations.sorted { ($0.createdAt ?? Date.distantPast) > ($1.createdAt ?? Date.distantPast) }.first
+                            if let myId = newest?.id {
+                                UserDefaults.standard.set(myId, forKey: installIdUDKey)
+                                self.currentInstallationId = myId
+                                print("DEBUG: [XmtpService] Fallback: stored installation ID: \(myId)")
+                            }
+                        }
+                    }
+                    
+                    // 7. Enforce Max 7 Installations (skip revoking our own)
+                    // ONLY if this is a manual connection (not a recovery/build)
+                    // or it's a completely new installation.
+                    if (isManual || isNewInstallation) && installations.count > 7 {
                         print("DEBUG: [XmtpService] ⚠️ Installation limit exceeded (>7). Revoking oldest ones...")
                         
-                        // Sort by createdAt ascending (oldest first) (createdAt is Date? in v3)
                         let sortedInstallations = installations.sorted { ($0.createdAt ?? Date.distantPast) < ($1.createdAt ?? Date.distantPast) }
-                        
-                        // Calculate how many we need to revoke to get down to 7
                         let numberToRevoke = sortedInstallations.count - 7
                         let installationsToRevoke = Array(sortedInstallations.prefix(numberToRevoke))
+                            .filter { $0.id != self.currentInstallationId } // Never revoke ourselves
                         
-                        // Revoke them using the valid v3 iOS SDK method `revokeInstallations` on Client
                         let idsToRevoke = installationsToRevoke.map { $0.id }
                         print("DEBUG: [XmtpService] Revoking installations: \(idsToRevoke)")
                         try await self.client?.revokeInstallations(signingKey: signer, installationIds: idsToRevoke)
@@ -302,12 +278,12 @@ final class XmtpService: ObservableObject {
                     }
                 }
             } catch {
-                print("DEBUG: [XmtpService] ⚠️ Failed to enforce installation limit: \(error)")
+                print("DEBUG: [XmtpService] ⚠️ Failed to check installations: \(error)")
             }
             
             self.isReady = true
             self.useMock = false
-            print("DEBUG: [XmtpService] ✅ XMTP connection fully established")
+            print("DEBUG: [XmtpService] ✅ XMTP connection fully established (installationId: \(self.currentInstallationId ?? "nil"))")
         } catch {
             print("DEBUG: [XmtpService] ❌ XMTP Init FAILED: \(error)")
             throw error
@@ -395,6 +371,21 @@ final class XmtpService: ObservableObject {
                 }
             }
         }
+    }
+
+    /// Logs out the user by clearing the client, local state, and database files.
+    func logout() {
+        #if canImport(XMTPiOS)
+        self.client = nil
+        #endif
+        self.isReady = false
+        self.useMock = false
+        self.messages = []
+        self.activeConversationId = nil
+        self.messageStreamTask?.cancel()
+        self.messageStreamTask = nil
+        self.currentConversationBox = nil
+        Self.clearXmtpDatabaseFiles()
     }
 
     /// Open (or create) a DM conversation to the given inboxId.
@@ -502,7 +493,10 @@ final class XmtpService: ObservableObject {
 
         if !useMock {
             #if canImport(XMTPiOS)
-            guard client != nil else { throw XmtpServiceError.notConnected }
+            guard client != nil else { 
+                print("[XmtpService] ❌ Cannot send: Client is still nil")
+                throw XmtpServiceError.notConnected 
+            }
             #endif
         }
 
@@ -510,7 +504,8 @@ final class XmtpService: ObservableObject {
         defer { isSending = false }
 
         guard let box = currentConversationBox else {
-            throw XmtpServiceError.notConnected
+            print("[XmtpService] ❌ Cannot send: currentConversationBox is nil (conversationKey: \(activeConversationId ?? "nil"))")
+            throw XmtpServiceError.conversationNotInitialized
         }
 
         // Send via box (returns real ID)
@@ -765,8 +760,9 @@ final class XmtpService: ObservableObject {
                 group.addTask {
                     do {
                         try await DomaAPI.shared.upsertDomainGroupConversation(
-                            domain: domain,
                             conversationId: groupId,
+                            memberDomain: domain,
+                            actorDomain: ownerDomain,
                             groupName: groupName
                         )
                         print("DEBUG: Synced group for \(domain)")
@@ -794,7 +790,7 @@ final class XmtpService: ObservableObject {
     }
     
     /// Add a member to an existing group and sync backend
-    func addMember(groupId: String, newMemberDomain: String) async throws {
+    func addMember(groupId: String, newMemberDomain: String, actorDomain: String) async throws {
         #if canImport(XMTPiOS)
         guard let client else { throw XmtpServiceError.notConnected }
         
@@ -815,12 +811,12 @@ final class XmtpService: ObservableObject {
         try await group.sync()
         
         // 4. Sync Backend for the new member
-        try await DomaAPI.shared.upsertDomainGroupConversation(
-            domain: newMemberDomain,
+        try await DomaAPI.shared.addGroupMember(
             conversationId: group.id,
-            groupName: "Group"
+            actorDomain: actorDomain,
+            memberDomain: newMemberDomain
         )
-        print("DEBUG: Added \(newMemberDomain) to group \(groupId)")
+        print("DEBUG: Added \(newMemberDomain) to group \(groupId) by actor \(actorDomain)")
         #else
         throw XmtpServiceError.generic("XMTP SDK not integrated.")
         #endif
@@ -847,25 +843,57 @@ final class XmtpService: ObservableObject {
         guard let client else { throw XmtpServiceError.notConnected }
         
         // 1. Sync conversations from network then find group
-        print("DEBUG: [joinConversation] Syncing conversations before findGroup...")
+        print("DEBUG: [joinConversation] Syncing conversations before findGroup... (Attempt 1)")
         try await client.conversations.sync()
-        guard let group = try await client.conversations.findGroup(groupId: groupId) else {
-             throw XmtpServiceError.generic("Group not found (after sync)")
+        
+        var group = try await client.conversations.findGroup(groupId: groupId)
+        
+        // 2. SELF-HEALING: If group not found by ID, try to find by member domains
+        if group == nil {
+            print("DEBUG: [joinConversation] Group \(groupId) not found. Attempting self-healing...")
+            
+            do {
+                let members = try await DomaAPI.shared.getGroupConversationMembers(conversationId: groupId)
+                let resolvedAddresses = members.compactMap { $0.wallet }
+                
+                if resolvedAddresses.count == 2 {
+                    // It's a DM. Try to find/recreate the group by members.
+                    let myAddress = AppKit.instance.getAddress()?.lowercased()
+                    let peerAddress = resolvedAddresses.first { $0.lowercased() != myAddress }
+                    
+                    if let peer = peerAddress {
+                        print("DEBUG: [joinConversation] DM detected with peer: \(peer). Resolving via newGroup...")
+                        group = try await client.conversations.newGroup(with: [peer])
+                        print("DEBUG: [joinConversation] ✅ Healed DM group. New (or existing) XMTP ID: \(group?.id ?? "nil")")
+                    }
+                } else if !resolvedAddresses.isEmpty {
+                    // Try to find by name if multiple members
+                    print("DEBUG: [joinConversation] Group chat detected with \(resolvedAddresses.count) members. Syncing again...")
+                    try await client.conversations.sync()
+                    group = try await client.conversations.findGroup(groupId: groupId)
+                }
+            } catch {
+                print("DEBUG: [joinConversation] ❌ Self-healing failed: \(error)")
+            }
         }
         
-        // 2. Setup State
+        guard let finalGroup = group else {
+             throw XmtpServiceError.generic("Group not found on XMTP network (ID: \(groupId)). Please ensure you are a member.")
+        }
+        
+        // 3. Setup State
         self.messageStreamTask?.cancel()
         self.messages = []
         self.activeConversationId = groupId
         
-        // 3. Setup Send Capability
+        // 4. Setup Send Capability
         self.currentConversationBox = ConversationBox(sendText: { text in
-            return try await group.send(content: text)
+            return try await finalGroup.send(content: text)
         })
         
-        // 4. Load Initial Messages & Build inboxId→domain mapping
-        try await group.sync()
-        let allMessages = try await group.messages()
+        // 5. Load Initial Messages & Build inboxId→domain mapping
+        try await finalGroup.sync()
+        let allMessages = try await finalGroup.messages()
         let myInboxId = client.inboxID
         
         // Build inboxId → display name mapping using member API (returns domain, wallet, name)
@@ -912,11 +940,11 @@ final class XmtpService: ObservableObject {
         }
         .sorted { $0.createdAt < $1.createdAt }
         
-        // 5. Start Streaming
+        // 6. Start Streaming
         self.messageStreamTask = Task { [weak self] in
             guard let self else { return }
             do {
-                for try await msg in group.streamMessages() {
+                for try await msg in finalGroup.streamMessages() {
                     // Only show text messages
                     guard (try? msg.encodedContent.type) == ContentTypeText else { continue }
                     guard let content: String = try? msg.content(),
