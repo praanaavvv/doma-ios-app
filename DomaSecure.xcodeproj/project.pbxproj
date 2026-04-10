@@ -15,6 +15,7 @@
 		FE03CC762EFD095500ABF095 /* DomaAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE03CC752EFD094500ABF095 /* DomaAPI.swift */; };
 		FE0AE6F42F432599005B7511 /* GroupChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0AE6F22F432599005B7511 /* GroupChatView.swift */; };
 		FE2A3A022F39AA0400C3BEC9 /* XmtpService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE2A3A012F39A9EE00C3BEC9 /* XmtpService.swift */; };
+		FE2A3A042F39AA0400C3BEC9 /* KeychainHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE2A3A032F39A9EE00C3BEC9 /* KeychainHelper.swift */; };
 		FE4A7C802F41C72700BC049D /* XMTPiOS in Frameworks */ = {isa = PBXBuildFile; productRef = FE4A7C7F2F41C72700BC049D /* XMTPiOS */; };
 		FE4B6A6F2F49F7F70043DACA /* DomaWebSocket.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE4B6A6E2F49F7F70043DACA /* DomaWebSocket.swift */; };
 		FE662D182F054635006A68F1 /* Starscream in Frameworks */ = {isa = PBXBuildFile; productRef = FE662D172F054635006A68F1 /* Starscream */; };
@@ -70,6 +71,7 @@
 		FE03CC752EFD094500ABF095 /* DomaAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DomaAPI.swift; sourceTree = "<group>"; };
 		FE0AE6F22F432599005B7511 /* GroupChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupChatView.swift; sourceTree = "<group>"; };
 		FE2A3A012F39A9EE00C3BEC9 /* XmtpService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XmtpService.swift; sourceTree = "<group>"; };
+		FE2A3A032F39A9EE00C3BEC9 /* KeychainHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainHelper.swift; sourceTree = "<group>"; };
 		FE4B6A6E2F49F7F70043DACA /* DomaWebSocket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DomaWebSocket.swift; sourceTree = "<group>"; };
 		FE4B6A702F49F8300043DACA /* AddDomainSearchSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddDomainSearchSheet.swift; sourceTree = "<group>"; };
 		FE4B6A712F49F8300043DACA /* AppErrors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppErrors.swift; sourceTree = "<group>"; };
@@ -196,6 +198,7 @@
 			isa = PBXGroup;
 			children = (
 				FE2A3A012F39A9EE00C3BEC9 /* XmtpService.swift */,
+				FE2A3A032F39A9EE00C3BEC9 /* KeychainHelper.swift */,
 			);
 			path = Messaging;
 			sourceTree = "<group>";
@@ -483,6 +486,7 @@
 				FE662D402F07A5D4006A68F1 /* SafariView.swift in Sources */,
 				FEC6A5DA2EF7BDC6001C4DFB /* AnalyticsDomainRow.swift in Sources */,
 				FE2A3A022F39AA0400C3BEC9 /* XmtpService.swift in Sources */,
+				FE2A3A042F39AA0400C3BEC9 /* KeychainHelper.swift in Sources */,
 				FE03CC742EFD092F00ABF095 /* DTOs.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

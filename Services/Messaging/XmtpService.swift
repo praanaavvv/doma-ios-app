@@ -167,20 +167,27 @@ final class XmtpService: ObservableObject {
             UserDefaults.standard.set(true, forKey: migrationKey)
         }
 
-        // 2. Get or create DB encryption key (persisted in UserDefaults)
-        let udKey = "d_db_key_wc_\(address.lowercased())"
+        // 2. Get or create DB encryption key (persisted in Keychain)
+        let keychainKey = "d_db_key_wc_\(address.lowercased())"
         var dbKey: Data
         let hasExistingDBKey: Bool
         
-        if let stored = UserDefaults.standard.data(forKey: udKey) {
+        if let stored = KeychainHelper.shared.read(forKey: keychainKey) {
             dbKey = stored
             hasExistingDBKey = true
-            print("DEBUG: [XmtpService] Using stored DB key for \(address)")
+            print("DEBUG: [XmtpService] Using stored DB key for \(address) (from Keychain)")
+        } else if let legacy = UserDefaults.standard.data(forKey: keychainKey) {
+            // Migration: Move from UserDefaults to Keychain
+            dbKey = legacy
+            hasExistingDBKey = true
+            KeychainHelper.shared.save(legacy, forKey: keychainKey)
+            UserDefaults.standard.removeObject(forKey: keychainKey)
+            print("DEBUG: [XmtpService] Migrated DB key for \(address) from UserDefaults to Keychain")
         } else {
             dbKey = Data.random(length: 32)
             hasExistingDBKey = false
-            UserDefaults.standard.set(dbKey, forKey: udKey)
-            print("DEBUG: [XmtpService] Created & stored new DB key for \(address)")
+            KeychainHelper.shared.save(dbKey, forKey: keychainKey)
+            print("DEBUG: [XmtpService] Created & stored new DB key for \(address) in Keychain")
         }
 
         // 3. Create signer backed by WalletConnect
@@ -212,7 +219,7 @@ final class XmtpService: ObservableObject {
                     self.client = try await Self.createClientWithKeyRecovery(
                         signer: signer,
                         dbKey: &dbKey,
-                        dbKeyUDKey: udKey
+                        keychainKey: keychainKey
                     )
                     isNewInstallation = true
                 }
@@ -221,7 +228,7 @@ final class XmtpService: ObservableObject {
                 self.client = try await Self.createClientWithKeyRecovery(
                     signer: signer,
                     dbKey: &dbKey,
-                    dbKeyUDKey: udKey
+                    keychainKey: keychainKey
                 )
                 isNewInstallation = true
             }
@@ -284,6 +291,17 @@ final class XmtpService: ObservableObject {
             self.isReady = true
             self.useMock = false
             print("DEBUG: [XmtpService] ✅ XMTP connection fully established (installationId: \(self.currentInstallationId ?? "nil"))")
+            
+            // 8. Proactive Sync: Tell the network to share encryption state/groups with this installation
+            Task {
+                do {
+                    print("DEBUG: [XmtpService] 🔄 Syncing conversations from network...")
+                    try await self.client?.conversations.sync()
+                    print("DEBUG: [XmtpService] ✅ Conversation sync complete.")
+                } catch {
+                    print("DEBUG: [XmtpService] ⚠️ Sync failed: \(error)")
+                }
+            }
         } catch {
             print("DEBUG: [XmtpService] ❌ XMTP Init FAILED: \(error)")
             throw error
@@ -299,7 +317,7 @@ final class XmtpService: ObservableObject {
     private static func createClientWithKeyRecovery(
         signer: SigningKey,
         dbKey: inout Data,
-        dbKeyUDKey: String
+        keychainKey: String
     ) async throws -> Client {
         let options = ClientOptions(
             api: .init(env: .dev),
@@ -321,8 +339,8 @@ final class XmtpService: ObservableObject {
                 // 2. Generate a fresh encryption key
                 let freshKey = Data.random(length: 32)
                 dbKey = freshKey
-                UserDefaults.standard.set(freshKey, forKey: dbKeyUDKey)
-                print("DEBUG: [XmtpService] Generated fresh DB key and cleared old database.")
+                KeychainHelper.shared.save(freshKey, forKey: keychainKey)
+                print("DEBUG: [XmtpService] Generated fresh DB key and cleared old database (Keychain updated).")
 
                 // 3. Retry with the fresh key
                 let retryOptions = ClientOptions(
@@ -373,7 +391,8 @@ final class XmtpService: ObservableObject {
         }
     }
 
-    /// Logs out the user by clearing the client, local state, and database files.
+    /// Standard logout: Clears in-memory state but KEEPS the local database.
+    /// This allows the user to resume their session quickly on next login.
     func logout() {
         #if canImport(XMTPiOS)
         self.client = nil
@@ -385,7 +404,38 @@ final class XmtpService: ObservableObject {
         self.messageStreamTask?.cancel()
         self.messageStreamTask = nil
         self.currentConversationBox = nil
+        print("DEBUG: [XmtpService] Logout complete (local DB preserved).")
+    }
+
+    /// Complete Reset: Clears everyting, wipes the local database, and deletes Keychain keys.
+    /// Use this for "Destroy Account" or "Reset All Data".
+    func hardReset() {
+        print("DEBUG: [XmtpService] Performing HARD RESET...")
+        #if canImport(XMTPiOS)
+        self.client = nil
+        #endif
+        self.isReady = false
+        self.useMock = false
+        self.messages = []
+        self.activeConversationId = nil
+        self.messageStreamTask?.cancel()
+        self.messageStreamTask = nil
+        self.currentConversationBox = nil
+        
+        // 1. Wipe DB files
         Self.clearXmtpDatabaseFiles()
+        
+        // 2. Wipe Keychain keys if we have an active address
+        if let address = AppKit.instance.getAddress() {
+            let keychainKey = "d_db_key_wc_\(address.lowercased())"
+            KeychainHelper.shared.delete(forKey: keychainKey)
+            
+            // Also clear installation ID from UserDefaults
+            let installIdUDKey = "d_install_id_wc_\(address.lowercased())"
+            UserDefaults.standard.removeObject(forKey: installIdUDKey)
+        }
+        
+        print("DEBUG: [XmtpService] ✅ Hard reset complete.")
     }
 
     /// Open (or create) a DM conversation to the given inboxId.
@@ -565,9 +615,16 @@ final class XmtpService: ObservableObject {
         #if canImport(XMTPiOS)
         guard let client else { throw XmtpServiceError.notConnected }
         
-        // Retrieve the active session to sign the revocation
-        guard let session = AppKit.instance.getSessions().first,
-              let address = AppKit.instance.getAddress() else {
+        // Retrieve the active address and find the matching session
+        guard let address = AppKit.instance.getAddress() else {
+            throw XmtpServiceError.missingSigner
+        }
+        
+        // Filter to find the session that actually contains this address
+        let sessions = AppKit.instance.getSessions()
+        guard let session = sessions.first(where: { session in
+            session.accounts.map(\.address).contains(address)
+        }) ?? sessions.first else {
             throw XmtpServiceError.missingSigner
         }
         
@@ -587,9 +644,16 @@ final class XmtpService: ObservableObject {
         #if canImport(XMTPiOS)
         guard let client else { throw XmtpServiceError.notConnected }
         
-        // Retrieve the active session to sign the revocation
-        guard let session = AppKit.instance.getSessions().first,
-              let address = AppKit.instance.getAddress() else {
+        // Retrieve the active address and find the matching session
+        guard let address = AppKit.instance.getAddress() else {
+            throw XmtpServiceError.missingSigner
+        }
+        
+        // Filter to find the session that actually contains this address
+        let sessions = AppKit.instance.getSessions()
+        guard let session = sessions.first(where: { session in
+            session.accounts.map(\.address).contains(address)
+        }) ?? sessions.first else {
             throw XmtpServiceError.missingSigner
         }
         

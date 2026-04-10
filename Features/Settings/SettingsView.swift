@@ -238,6 +238,45 @@ struct SettingsView: View {
                     }
                     .padding(.horizontal, 16)
 
+                    SettingsSection(title: "Danger Zone") {
+                        Button {
+                            Task {
+                                xmtp.hardReset()
+                                await dynamic.disconnect()
+                                session.walletAddress = nil
+                                session.activeDomain = nil
+                                session.domains = []
+                                session.isAuthed = false
+                            }
+                        } label: {
+                            HStack(spacing: 12) {
+                                Circle()
+                                    .fill(Color.red.opacity(0.1))
+                                    .frame(width: 34, height: 34)
+                                    .overlay(
+                                        Image(systemName: "trash")
+                                            .foregroundStyle(.red)
+                                    )
+                                
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Hard Reset")
+                                        .font(.system(size: 15, weight: .semibold))
+                                        .foregroundStyle(.red)
+                                    Text("Clears all local identity and history")
+                                        .font(.system(size: 12))
+                                        .foregroundStyle(.secondary)
+                                }
+                                
+                                Spacer()
+                            }
+                            .padding(.vertical, 12)
+                            .padding(.horizontal, 14)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(.horizontal, 16)
+
                     // Logout
                     Button(role: .destructive) {
                         Task {

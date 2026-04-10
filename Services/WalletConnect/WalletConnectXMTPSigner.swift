@@ -29,7 +29,8 @@ class WalletConnectXMTPSigner: SigningKey {
     }
 
     func sign(_ message: String) async throws -> SignedData {
-        print("[WCSigner] Requesting personal_sign from wallet...")
+        print("[WCSigner] Requesting personal_sign (Topic: \(session.topic))")
+        print("[WCSigner] Message content: \(message)")
 
         // Let ReownAppKit format the request properly
         // rather than manually building the RPC call.
@@ -96,7 +97,7 @@ class WalletConnectXMTPSigner: SigningKey {
                         let request = try Request(topic: activeSession.topic, method: method, params: params, chainId: chainId)
                         
                         try await Sign.instance.request(params: request)
-                        print("[WCSigner] Request sent, opening wallet...")
+                        print("[WCSigner] Request (ID: \(request.id)) sent successfully, opening wallet...")
                         
                         // Deep-link to the connected wallet immediately
                         await MainActor.run {
@@ -110,14 +111,21 @@ class WalletConnectXMTPSigner: SigningKey {
                             try? await Task.sleep(nanoseconds: 500_000_000)
                         }
                         
+                        // Final safety check for THIS attempt
                         if !success && attempt < maxAttempts {
-                            print("[WCSigner] ⚠️ No response received in 8s. Retrying...")
+                            print("[WCSigner] ⚠️ No response received in 8s for attempt \(attempt). Retrying...")
                             attempt += 1
-                        } else {
-                            // If we didn't succeed, we move on anyway to let success = true handle loop break
-                            // but actually success only becomes true via the sink.
-                            if !success { success = true } // Break the while loop if max attempts reached without success
+                        } else if !success {
+                            print("[WCSigner] ❌ Final attempt failed. No response from wallet.")
+                            break // Exit the attempt loop
                         }
+                    }
+                    
+                    // Final safety fallback: If the loop finished but success was never true (sink never fired)
+                    if !success {
+                        print("[WCSigner] ❌ Continuation fallback: Request timed out.")
+                        cancellable?.cancel()
+                        continuation.resume(throwing: XmtpServiceError.generic("Revocation request timed out. Please ensure your wallet is open and connected, then try again."))
                     }
                 } catch {
                     cancellable?.cancel()
